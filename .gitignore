@@ -1,0 +1,9 @@
+# gitignore
+venv
+.env
+trash
+**/__pycache__
+docs
+fixtalk
+logs
+todo
