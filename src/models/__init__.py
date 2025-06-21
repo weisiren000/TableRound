@@ -9,6 +9,7 @@ from src.models.anthropic import AnthropicModel
 from src.models.deepseek import DeepSeekModel
 from src.models.openrouter import OpenRouterModel
 from src.models.doubao import DoubaoModel
+from src.models.github import GithubModel
 
 __all__ = [
     'BaseModel',
@@ -17,5 +18,6 @@ __all__ = [
     'AnthropicModel',
     'DeepSeekModel',
     'OpenRouterModel',
-    'DoubaoModel'
+    'DoubaoModel',
+    'GithubModel'
 ]
