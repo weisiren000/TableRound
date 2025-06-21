@@ -23,7 +23,7 @@ class GoogleModel(BaseModel):
 
     def __init__(
         self,
-        model_name: str = "gemini-2.5-flash-preview-04-17",
+        model_name: str = "gemini-2.5-flash",
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         **kwargs
@@ -56,8 +56,8 @@ class GoogleModel(BaseModel):
             "vision" in model_name.lower() or
             "gemini" in model_name.lower() or  # Gemini系列模型都支持视觉
             model_name in [
-                "gemini-2.5-flash-preview-04-17",
-                "gemini-2.5-flash-preview-05-20",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite-preview-06-17",
                 "gemini-pro-vision"
             ]
         )

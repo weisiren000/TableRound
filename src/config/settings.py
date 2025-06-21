@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 
+from src.config.models import ModelConfig
+
 
 class Settings:
     """全局设置类"""
@@ -51,66 +53,8 @@ class Settings:
 
         # AI模型设置
         self.provider = os.getenv("AI_PROVIDER", "openai")
-        self.model = os.getenv("AI_MODEL", "gpt-4")
-
-        # 支持的模型提供商
-        self.supported_providers = {
-            "openai": {
-                "default_model": "gpt-4",
-                "models": [
-                    "gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"
-                ]
-            },
-            "google": {
-                "default_model": "gemini-2.5-flash-preview-04-17",
-                "models": [
-                    "gemini-2.5-flash-preview-04-17", "gemini-pro", "gemini-pro-vision","gemini-2.5-flash-preview-05-20"
-                ]
-            },
-            "anthropic": {
-                "default_model": "claude-3-opus-20240229",
-                "models": [
-                    "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"
-                ]
-            },
-            "deepseek": {
-                "default_model": "deepseek-chat-v3-0324",
-                "models": [
-                    "deepseek-chat-v3-0324", "deepseek-r1", "deepseek-vision-v1"
-                ]
-            },
-            "doubao": {
-                "default_model": "doubao-1.5-pro",
-                "models": [
-                    "doubao-1.5-pro", "doubao-1.5-lite", "doubao-1.5-vision-pro",
-                    "doubao-1.5-vision-lite", "doubao-seedream-3-0-t2i-250415"
-                ]
-            },
-            "openrouter": {
-                "default_model": "deepseek/deepseek-r1-0528:free",
-                "models": [
-                    "meta-llama/llama-4-maverick:free",
-                    "meta-llama/llama-4-scout:free",
-                    "qwen/qwen3-235b-a22b:free",
-                    "microsoft/phi-4-reasoning-plus:free",
-                    "deepseek/deepseek-r1:free",
-                    "deepseek/deepseek-r1-0528:free",
-                    "deepseek/deepseek-chat-v3-0324:free",
-                    "thudm/glm-4-32b:free",
-                    "thudm/glm-z1-32b:free",
-                    "moonshotai/kimi-vl-a3b-thinking:free"
-                ],
-                "vision_models": [
-                    "microsoft/phi-4-reasoning-plus:free",
-                    "moonshotai/kimi-vl-a3b-thinking:free"
-                ],
-                "chat_models": [
-                    "deepseek/deepseek-r1-0528:free",
-                    "deepseek/deepseek-r1:free",
-                    "meta-llama/llama-4-maverick:free"
-                ]
-            }
-        }
+        self.model_config = ModelConfig()
+        self.model = os.getenv("AI_MODEL", self.model_config.get_default_model(self.provider))
 
         # 记忆设置
         self.memory_storage_type = os.getenv("MEMORY_STORAGE_TYPE", "memory")

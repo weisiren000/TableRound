@@ -14,21 +14,21 @@ class ModelConfig:
     # 支持的模型提供商
     SUPPORTED_PROVIDERS = {
         "openai": {
-            "default_model": "gpt-4",
+            "default_model": "gpt-4o",
             "models": [
                 "gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"
             ],
             "vision_models": [
-                "gpt-4-vision-preview", "gpt-4-turbo", "gpt-4o"
+                "gpt-4-turbo", "gpt-4o"
             ]
         },
         "google": {
-            "default_model": "gemini-2.5-flash-preview-04-17",
+            "default_model": "gemini-2.5-flash",
             "models": [
-                "gemini-2.5-flash-preview-04-17", "gemini-pro", "gemini-pro-vision"
+                "gemini-2.5-flash", "gemini-2.5-flash-lite-preview-06-17", "gemini-pro"
             ],
             "vision_models": [
-                "gemini-pro-vision", "gemini-2.5-flash-preview-04-17"
+                "gemini-2.5-flash", "gemini-2.5-flash-lite-preview-06-17"
             ]
         },
         "anthropic": {
@@ -66,8 +66,25 @@ class ModelConfig:
             "thinking_models": [
                 "moonshotai/kimi-vl-a3b-thinking:free"
             ]
+        },
+        "github": {
+            "default_model": "openai/gpt-4.1",
+            "models": [
+                "openai/gpt-4.1",
+                "openai/gpt-4o",
+                "deepseek/DeepSeek-V3-0324",
+                "openai/gpt-4o-mini",
+                "openai/gpt-4.1-mini",
+                "openai/gpt-4.1-nano"
+            ],
+            "vision_models": []
         }
     }
+
+    @staticmethod
+    def _get_provider_config(provider: str) -> Optional[Dict[str, Any]]:
+        """获取提供商配置（内部使用）"""
+        return ModelConfig.SUPPORTED_PROVIDERS.get(provider.lower())
 
     @staticmethod
     def get_default_model(provider: str) -> str:
@@ -80,9 +97,9 @@ class ModelConfig:
         Returns:
             默认模型名称
         """
-        provider = provider.lower()
-        if provider in ModelConfig.SUPPORTED_PROVIDERS:
-            return ModelConfig.SUPPORTED_PROVIDERS[provider]["default_model"]
+        config = ModelConfig._get_provider_config(provider)
+        if config:
+            return config.get("default_model", "gpt-4")
         return "gpt-4"
 
     @staticmethod
@@ -96,10 +113,8 @@ class ModelConfig:
         Returns:
             模型列表
         """
-        provider = provider.lower()
-        if provider in ModelConfig.SUPPORTED_PROVIDERS:
-            return ModelConfig.SUPPORTED_PROVIDERS[provider]["models"]
-        return []
+        config = ModelConfig._get_provider_config(provider)
+        return config.get("models", []) if config else []
 
     @staticmethod
     def get_vision_models(provider: str) -> List[str]:
@@ -112,10 +127,8 @@ class ModelConfig:
         Returns:
             视觉模型列表
         """
-        provider = provider.lower()
-        if provider in ModelConfig.SUPPORTED_PROVIDERS:
-            return ModelConfig.SUPPORTED_PROVIDERS[provider].get("vision_models", [])
-        return []
+        config = ModelConfig._get_provider_config(provider)
+        return config.get("vision_models", []) if config else []
 
     @staticmethod
     def supports_vision(provider: str, model_name: str) -> bool:
@@ -129,11 +142,8 @@ class ModelConfig:
         Returns:
             是否支持视觉
         """
-        provider = provider.lower()
-        if provider in ModelConfig.SUPPORTED_PROVIDERS:
-            vision_models = ModelConfig.SUPPORTED_PROVIDERS[provider].get("vision_models", [])
-            return model_name in vision_models
-        return False
+        vision_models = ModelConfig.get_vision_models(provider)
+        return model_name in vision_models
 
     @staticmethod
     def supports_thinking(provider: str, model_name: str) -> bool:
@@ -147,8 +157,8 @@ class ModelConfig:
         Returns:
             是否支持思维模型
         """
-        provider = provider.lower()
-        if provider in ModelConfig.SUPPORTED_PROVIDERS:
-            thinking_models = ModelConfig.SUPPORTED_PROVIDERS[provider].get("thinking_models", [])
+        config = ModelConfig._get_provider_config(provider)
+        if config:
+            thinking_models = config.get("thinking_models", [])
             return model_name in thinking_models
         return False
