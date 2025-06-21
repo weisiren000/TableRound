@@ -80,19 +80,21 @@ tableround/
 │   └── cli/                  # 命令行界面
 │       └── terminal.py       # 终端界面实现
 ├── data/                     # 数据目录
-│   ├── images/               # 图片存储 (原始+压缩)
-│   ├── keywords/             # 关键词数据
-│   └── memories/             # 记忆数据备份
-│       ├── consumer_1/       # 消费者1记忆
-│       ├── consumer_2/       # 消费者2记忆
-│       ├── consumer_3/       # 消费者3记忆
-│       ├── craftsman_1/      # 手工艺人记忆
-│       ├── designer_1/       # 设计师记忆
-│       └── manufacturer_1/   # 制造商记忆
-├── README.md                # 项目说明
-├── requirements.txt         # 依赖列表
-├── run.py                   # 启动脚本
-└── arc.md                   # 项目架构文档 (本文件)
+│   ├── images/               # 用户上传的图片
+│   ├── keywords/             # 提取的关键词
+│   └── memories/             # 智能体记忆备份
+│       ├── consumer_1/
+│       ├── consumer_2/
+│       ├── consumer_3/
+│       ├── craftsman_1/
+│       ├── designer_1/
+│       └── manufacturer_1/
+├── .env.example              # 环境变量示例
+├── .gitignore                # Git忽略配置
+├── arc.md                    # 项目架构文档 (本文件)
+├── README.md                 # 项目说明
+├── requirements.txt          # 依赖列表
+└── run.py                    # 启动脚本
 ```
 
 ## 核心技术架构
