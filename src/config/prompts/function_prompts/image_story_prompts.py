@@ -12,24 +12,6 @@ from typing import Dict, List
 class ImageStoryPrompts:
     """图片故事提示词类"""
     
-    # 基础图片故事提示词
-    BASIC_IMAGE_STORY_PROMPT = """
-你是一名{role}，请根据提供的图片讲述一个故事。
-
-{role_description}
-
-在讲述故事时，请基于你的身份和经验，进行联想和思维发散。故事应该：
-1. 与你的专业背景和经验相关
-2. 展现你对图片的独特理解和联想
-3. 包含丰富的细节和情感
-4. 长度控制在500字左右
-
-请注意：
-- 不要简单描述图片内容，而是要讲述一个有情节的故事
-- 故事应该有开头、发展和结尾
-- 可以自由发挥，但要保持与你的角色身份一致
-"""
-    
     # 专业视角图片故事提示词
     PROFESSIONAL_IMAGE_STORY_PROMPT = """
 作为{role}，请从专业角度分析这张图片并讲述相关故事。
@@ -166,23 +148,6 @@ class ImageStoryPrompts:
 
 请创作一个多层次、多角度的复合故事。
 """
-    
-    @staticmethod
-    def get_basic_image_story_prompt(role: str, role_description: str) -> str:
-        """
-        获取基础图片故事提示词
-        
-        Args:
-            role: 角色名称
-            role_description: 角色描述
-            
-        Returns:
-            格式化的基础图片故事提示词
-        """
-        return ImageStoryPrompts.BASIC_IMAGE_STORY_PROMPT.format(
-            role=role,
-            role_description=role_description
-        )
     
     @staticmethod
     def get_professional_image_story_prompt(role: str) -> str:
