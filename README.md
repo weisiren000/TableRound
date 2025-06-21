@@ -24,7 +24,7 @@
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/tableround.git
+git clone https://github.com/weisiren000/roundtable.git
 cd tableround
 ```
 
@@ -58,19 +58,21 @@ python run.py
 ```
 tableround/
 ├── data/                  # 数据目录
-│   ├── images/            # 图片目录
-│   ├── keywords/          # 关键词目录
-│   └── memories/          # 记忆目录
+│   ├── images/            # 用户上传的图片
+│   ├── keywords/          # 提取的关键词
+│   └── memories/          # 智能体记忆备份
 ├── src/                   # 源代码目录
 │   ├── agents/            # 智能体定义
-│   ├── api/               # API接口
-│   ├── config/            # 配置模块
-│   ├── core/              # 核心功能
-│   ├── models/            # AI模型接口
+│   ├── api/               # (未来使用) API接口
+│   ├── config/            # 配置模块 (模型、提示词等)
+│   ├── core/              # 核心功能 (对话、记忆、KJ法等)
+│   ├── models/            # 对接不同AI模型的接口
 │   └── utils/             # 工具函数
 ├── ui/                    # 用户界面
 │   └── cli/               # 命令行界面
 ├── .env.example           # 环境变量示例
+├── .gitignore             # Git忽略配置
+├── arc.md                 # 项目架构文档
 ├── README.md              # 项目说明
 ├── requirements.txt       # 依赖列表
 └── run.py                 # 启动脚本
@@ -137,4 +139,4 @@ tableround/
 如有任何问题或建议，请通过以下方式联系我们：
 
 - 电子邮件：your.email@example.com
-- GitHub Issues：[https://github.com/yourusername/tableround/issues](https://github.com/yourusername/tableround/issues)
+- GitHub Issues：[https://github.com/weisiren000/roundtable/issues](https://github.com/weisiren000/roundtable/issues)
