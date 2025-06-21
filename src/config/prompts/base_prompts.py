@@ -12,6 +12,22 @@ from typing import Dict, Any
 class BasePrompts:
     """基础提示词类"""
     
+    # 关键词提取标准操作规程 (SOP)
+    KEYWORD_EXTRACTION_SOP = """
+提取关键词时，请遵循以下原则：
+1. 关键词应该是名词或短语，避免使用动词、形容词或完整句子
+2. 关键词应该具有代表性，能够反映内容的核心概念
+3. 关键词应该相互独立，避免语义重复
+4. 关键词应该简洁明了，通常为1-3个词
+5. 关键词应该与主题相关，能够帮助理解和分类内容
+
+请根据内容的丰富程度提取合适数量的关键词，通常3-10个即可。
+重要：请将关键词放在<key_words>标签中，用逗号分隔。
+
+格式示例：
+<key_words>关键词1, 关键词2, 关键词3</key_words>
+"""
+    
     # 通用系统提示词模板
     SYSTEM_PROMPT_TEMPLATE = """你是一个智能助手，正在扮演{role}的角色。
 
@@ -78,8 +94,8 @@ class BasePrompts:
 - 直接进入故事，展现你的专业视角和个人经历
 - 用你自己的语言风格和表达习惯来讲述
 
-最后，请在故事结尾提取3-8个关键词，格式为：
-<key_words>关键词1, 关键词2, 关键词3</key_words>
+最后，请遵循以下指示提取关键词：
+{keyword_extraction_sop}
 """
     
     @staticmethod
@@ -149,5 +165,6 @@ class BasePrompts:
         """
         return BasePrompts.IMAGE_STORY_TEMPLATE.format(
             role=role,
-            role_description=role_description
+            role_description=role_description,
+            keyword_extraction_sop=BasePrompts.KEYWORD_EXTRACTION_SOP
         )

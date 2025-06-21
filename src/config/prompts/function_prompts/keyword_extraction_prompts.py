@@ -7,6 +7,7 @@
 """
 
 from typing import Dict, List
+from src.config.prompts.base_prompts import BasePrompts
 
 
 class KeywordExtractionPrompts:
@@ -21,18 +22,7 @@ class KeywordExtractionPrompts:
 
 主题：{topic}
 
-提取关键词时，请遵循以下原则：
-1. 关键词应该是名词或短语，避免使用动词、形容词或完整句子
-2. 关键词应该具有代表性，能够反映内容的核心概念
-3. 关键词应该相互独立，避免语义重复
-4. 关键词应该简洁明了，通常为1-3个词
-5. 关键词应该与主题相关，能够帮助理解和分类内容
-
-请根据内容的丰富程度提取合适数量的关键词，通常3-10个即可。
-重要：请将关键词放在<key_words>标签中，用逗号分隔。
-
-格式示例：
-<key_words>关键词1, 关键词2, 关键词3</key_words>
+{keyword_extraction_sop}
 
 备选格式（如果无法使用标签）：
 ["关键词1", "关键词2", "关键词3"]
@@ -152,7 +142,8 @@ class KeywordExtractionPrompts:
         """
         return KeywordExtractionPrompts.BASIC_EXTRACTION_PROMPT.format(
             content=content,
-            topic=topic
+            topic=topic,
+            keyword_extraction_sop=BasePrompts.KEYWORD_EXTRACTION_SOP
         )
     
     @staticmethod
