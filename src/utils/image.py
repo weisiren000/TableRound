@@ -178,8 +178,8 @@ class ImageProcessor:
                 base_url=self.settings.get_base_url("doubao")
             )
 
-            # 调用图像生成API
-            image_urls = await model.generate_image(prompt, size)
+            # 调用图像生成API，设置watermark=False
+            image_urls = await model.generate_image(prompt, size, watermark=False)
 
             if not image_urls or not image_urls[0] or image_urls[0].startswith("生成失败"):
                 self.logger.error(f"豆包API生成图像失败: {image_urls}")

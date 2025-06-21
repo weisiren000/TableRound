@@ -68,7 +68,7 @@ class Manufacturer(Agent):
         self.logger.info(f"制造商 {self.name} 正在评估设计方案的可行性")
 
         from src.config.prompts.agent_prompts import ManufacturerPrompts
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
 
         # 构建包含制造商信息的设计描述
         design_with_info = f"""
@@ -113,7 +113,7 @@ class Manufacturer(Agent):
         self.logger.info(f"制造商 {self.name} 正在估算生产成本")
 
         from src.config.prompts.agent_prompts import ManufacturerPrompts
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
 
         # 使用专门的制造商成本估算提示词
         prompt = ManufacturerPrompts.get_cost_estimation_prompt(design)
@@ -149,3 +149,33 @@ class Manufacturer(Agent):
         )
 
         return costs
+
+    async def suggest_production_plan(self, design: str) -> str:
+        """
+        针对设计方案提供生产建议
+
+        Args:
+            design: 设计方案
+
+        Returns:
+            生产建议
+        """
+        self.logger.info(f"制造商 {self.name} 正在提供生产建议")
+
+        from src.config.prompts.template_manager import PromptTemplates
+        
+        # ... existing code ...
+
+    async def estimate_production_cost(self, design: str) -> str:
+        """
+        估算设计方案的生产成本
+
+        Args:
+            design: 设计方案
+
+        Returns:
+            成本估算
+        """
+        self.logger.info(f"制造商 {self.name} 正在估算生产成本")
+
+        from src.config.prompts.template_manager import PromptTemplates
