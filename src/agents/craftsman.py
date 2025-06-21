@@ -55,7 +55,7 @@ class Craftsman(Agent):
 
     async def evaluate_design(self, design: str) -> str:
         """
-        评估设计方案
+        评估设计的可行性和传统工艺价值
 
         Args:
             design: 设计方案
@@ -65,8 +65,8 @@ class Craftsman(Agent):
         """
         self.logger.info(f"手工艺人 {self.name} 正在评估设计方案")
 
+        from src.config.prompts.template_manager import PromptTemplates
         from src.config.prompts.agent_prompts import CraftsmanPrompts
-        from src.config.prompts import PromptTemplates
 
         # 使用专门的手工艺人设计评估提示词
         prompt = CraftsmanPrompts.get_design_evaluation_prompt(design)
@@ -87,18 +87,18 @@ class Craftsman(Agent):
 
     async def suggest_materials(self, design: str) -> List[str]:
         """
-        建议适合的材料
+        为设计建议合适的材料
 
         Args:
             design: 设计方案
 
         Returns:
-            材料建议列表
+            材料建议
         """
-        self.logger.info(f"手工艺人 {self.name} 正在建议适合的材料")
+        self.logger.info(f"手工艺人 {self.name} 正在为设计建议材料")
 
+        from src.config.prompts.template_manager import PromptTemplates
         from src.config.prompts.agent_prompts import CraftsmanPrompts
-        from src.config.prompts import PromptTemplates
 
         # 使用专门的手工艺人材料建议提示词
         prompt = CraftsmanPrompts.get_material_suggestion_prompt(design)

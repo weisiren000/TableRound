@@ -92,7 +92,7 @@ class Consumer(Agent):
         self.logger.info(f"消费者 {self.name} 正在评估产品")
 
         from src.config.prompts.agent_prompts import ConsumerPrompts
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
 
         # 构建包含个人信息的产品描述
         product_with_info = f"""
@@ -136,7 +136,7 @@ class Consumer(Agent):
         self.logger.info(f"消费者 {self.name} 正在建议产品改进")
 
         from src.config.prompts.agent_prompts import ConsumerPrompts
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
 
         # 构建包含个人信息的产品描述
         product_with_info = f"""
@@ -178,3 +178,89 @@ class Consumer(Agent):
         )
 
         return suggestions
+
+    async def evaluate_market_potential(self, design: str) -> str:
+        """
+        评估设计的市场潜力
+
+        Args:
+            design: 设计方案
+
+        Returns:
+            市场潜力评估
+        """
+        self.logger.info(f"消费者 {self.name} 正在评估设计的市场潜力")
+
+        from src.config.prompts.template_manager import PromptTemplates
+        
+        # 构建包含个人信息的设计描述
+        design_with_info = f"""
+        设计描述：{design}
+
+        消费者基本信息：
+        - 年龄：{self.age}岁
+        - 性别：{self.gender}
+        - 背景：{self.background}
+        - 经验：{self.experience}
+        - 兴趣：{', '.join(self.interests)}
+        """
+
+        # 使用专门的消费者设计市场潜力评估提示词
+        prompt = ConsumerPrompts.get_design_market_potential_prompt(design_with_info)
+        system_prompt = PromptTemplates.get_system_prompt(self.current_role)
+        response = await self.model.generate(prompt, system_prompt)
+
+        # 将市场潜力评估存入记忆
+        self.memory.add_memory(
+            "design_market_potential",
+            {
+                "role": self.current_role,
+                "design": design,
+                "potential": response
+            }
+        )
+
+        return response
+
+    async def provide_feedback(self, design: str) -> str:
+        """
+        针对设计方案提供反馈
+
+        Args:
+            design: 设计方案
+
+        Returns:
+            反馈意见
+        """
+        self.logger.info(f"消费者 {self.name} 正在针对设计方案提供反馈")
+
+        from src.config.prompts.template_manager import PromptTemplates
+
+        # 构建包含个人信息的设计描述
+        design_with_info = f"""
+        设计描述：{design}
+
+        消费者基本信息：
+        - 年龄：{self.age}岁
+        - 性别：{self.gender}
+        - 背景：{self.background}
+        - 经验：{self.experience}
+        - 兴趣：{', '.join(self.interests)}
+        """
+
+        # 使用专门的消费者设计反馈提示词
+        prompt = ConsumerPrompts.get_design_feedback_prompt(design_with_info)
+        system_prompt = PromptTemplates.get_system_prompt(self.current_role)
+        response = await self.model.generate(prompt, system_prompt)
+
+        # 将反馈意见存入记忆
+        self.memory.add_memory(
+            "design_feedback",
+            {
+                "role": self.current_role,
+                "design": design,
+                "feedback": response
+            }
+        )
+
+        return response

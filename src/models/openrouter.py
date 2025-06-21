@@ -14,6 +14,7 @@ from typing import Optional, Dict, Any, List, Callable
 import aiohttp
 
 from src.models.base import BaseModel
+from src.utils.image_compressor import ImageCompressor
 
 
 class OpenRouterModel(BaseModel):
@@ -51,14 +52,30 @@ class OpenRouterModel(BaseModel):
         
         # 检查是否支持图像
         self.vision_supported = "vision" in model_name.lower() or model_name in [
-            "moonshotai/kimi-vl-a3b-thinking:free"
+            "moonshotai/kimi-vl-a3b-thinking:free",
+            "microsoft/phi-4-reasoning-plus:free"
         ]
-        
+
         # 检查是否支持思维模型
         self.thinking_supported = "thinking" in model_name.lower() or model_name in [
-            "moonshotai/kimi-vl-a3b-thinking:free"
+            "moonshotai/kimi-vl-a3b-thinking:free",
+            "microsoft/phi-4-reasoning-plus:free",
+            "deepseek/deepseek-r1-0528:free"
         ]
-        
+
+        # 定义视觉模型和对话模型
+        # 使用支持图像的模型
+        self.vision_model = "google/gemini-2.0-flash-exp:free"  # 使用Google的免费视觉模型
+        self.chat_model = "deepseek/deepseek-r1-0528:free"
+
+        # 初始化图像压缩器
+        self.image_compressor = ImageCompressor(
+            max_width=800,
+            max_height=800,
+            max_file_size_mb=1.5,
+            quality=85
+        )
+
         self.logger = logging.getLogger(f"model.openrouter.{model_name}")
 
     async def generate(self, prompt: str, system_prompt: str = "") -> str:
@@ -128,7 +145,7 @@ class OpenRouterModel(BaseModel):
 
     async def generate_with_image(self, prompt: str, system_prompt: str, image_path: str) -> str:
         """
-        基于图像生成文本
+        基于图像生成文本 - 使用两阶段模型调用机制
 
         Args:
             prompt: 提示词
@@ -138,25 +155,48 @@ class OpenRouterModel(BaseModel):
         Returns:
             生成的文本
         """
-        if not self.supports_vision():
-            return "该模型不支持图像处理"
-        
+        # 第一阶段：使用视觉模型进行图像描述
+        image_description = await self._describe_image_with_vision_model(prompt, system_prompt, image_path)
+
+        # 第二阶段：使用对话模型基于图像描述进行对话
+        return await self._generate_with_chat_model(prompt, system_prompt, image_description)
+
+    async def _describe_image_with_vision_model(self, prompt: str, system_prompt: str, image_path: str) -> str:
+        """
+        使用视觉模型描述图像
+
+        Args:
+            prompt: 提示词
+            system_prompt: 系统提示词
+            image_path: 图像路径
+
+        Returns:
+            图像描述
+        """
         try:
-            # 读取图像
-            with open(image_path, "rb") as image_file:
+            # 压缩图像
+            self.logger.info(f"开始压缩图像: {image_path}")
+            compressed_image_path = self.image_compressor.compress_for_api(image_path)
+            self.logger.info(f"图像压缩完成: {compressed_image_path}")
+
+            # 读取压缩后的图像
+            with open(compressed_image_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-            
+
             messages = []
-            
+
             # 添加系统提示词
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
-            
+
+            # 构建图像描述提示词（使用英文以提高视觉模型的理解准确性）
+            image_prompt = f"Please describe this image in detail, including main elements, colors, composition, and style. Then answer the following question based on the image content: {prompt}"
+
             # 添加用户提示词和图像
             messages.append({
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": prompt},
+                    {"type": "text", "text": image_prompt},
                     {
                         "type": "image_url",
                         "image_url": {
@@ -165,18 +205,18 @@ class OpenRouterModel(BaseModel):
                     }
                 ]
             })
-            
-            # 构建请求数据
+
+            # 构建请求数据 - 使用视觉模型
             data = {
-                "model": self.model_name,
+                "model": self.vision_model,
                 "messages": messages,
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens
             }
-            
+
             # 构建URL
             url = f"{self.base_url.rstrip('/')}/chat/completions"
-            
+
             # 发送请求
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -191,30 +231,97 @@ class OpenRouterModel(BaseModel):
                 ) as response:
                     if response.status != 200:
                         error_text = await response.text()
-                        self.logger.error(f"API请求失败: {response.status}, {error_text}")
-                        return f"生成失败: API请求返回 {response.status}"
-                    
+                        self.logger.error(f"视觉模型API请求失败: {response.status}, {error_text}")
+                        return f"图像描述失败: API请求返回 {response.status}"
+
                     result = await response.json()
-                    
+
                     # 获取生成的文本
                     content = result["choices"][0]["message"]["content"]
-                    
+
                     # 处理思维模型输出
-                    if self.thinking_supported:
-                        # 移除思维内容
-                        content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
-                    
+                    content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+
+                    self.logger.info(f"视觉模型图像描述完成，长度: {len(content)}")
                     return content
-        
+
         except Exception as e:
-            self.logger.error(f"基于图像生成文本失败: {str(e)}")
-            return f"生成失败: {str(e)}"
+            self.logger.error(f"视觉模型图像描述失败: {str(e)}")
+            return f"图像描述失败: {str(e)}"
+
+    async def _generate_with_chat_model(self, prompt: str, system_prompt: str, image_description: str) -> str:
+        """
+        使用对话模型基于图像描述生成回答
+
+        Args:
+            prompt: 原始提示词
+            system_prompt: 系统提示词
+            image_description: 图像描述
+
+        Returns:
+            生成的文本
+        """
+        try:
+            messages = []
+
+            # 添加系统提示词
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+
+            # 构建包含图像描述的提示词
+            enhanced_prompt = f"基于以下图像描述来回答问题：\n\n图像描述：{image_description}\n\n问题：{prompt}"
+
+            # 添加用户提示词
+            messages.append({"role": "user", "content": enhanced_prompt})
+
+            # 构建请求数据 - 使用对话模型
+            data = {
+                "model": self.chat_model,
+                "messages": messages,
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens
+            }
+
+            # 构建URL
+            url = f"{self.base_url.rstrip('/')}/chat/completions"
+
+            # 发送请求
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    json=data,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {self.api_key}",
+                        "HTTP-Referer": "https://tableround.example.com",
+                        "X-Title": "TableRound"
+                    }
+                ) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        self.logger.error(f"对话模型API请求失败: {response.status}, {error_text}")
+                        return f"对话生成失败: API请求返回 {response.status}"
+
+                    result = await response.json()
+
+                    # 获取生成的文本
+                    content = result["choices"][0]["message"]["content"]
+
+                    # 处理思维模型输出
+                    content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+
+                    self.logger.info(f"对话模型生成完成，长度: {len(content)}")
+                    return content
+
+        except Exception as e:
+            self.logger.error(f"对话模型生成失败: {str(e)}")
+            return f"对话生成失败: {str(e)}"
 
     async def generate_stream(
-        self, 
-        prompt: str, 
-        system_prompt: str = "", 
-        callback: Callable[[str], None] = None
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        callback: Optional[Callable[[str], None]] = None
     ) -> str:
         """
         流式生成文本
@@ -328,9 +435,12 @@ class OpenRouterModel(BaseModel):
 
     def supports_vision(self) -> bool:
         """
-        是否支持图像处理
+        是否支持图像处理 - 现在通过两阶段模型调用机制始终支持
 
         Returns:
             是否支持图像处理
         """
-        return self.vision_supported
+        # 通过两阶段模型调用机制，我们始终支持图像处理
+        # 第一阶段：视觉模型描述图像
+        # 第二阶段：对话模型基于描述生成回答
+        return True

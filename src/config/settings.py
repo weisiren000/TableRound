@@ -64,7 +64,7 @@ class Settings:
             "google": {
                 "default_model": "gemini-2.5-flash-preview-04-17",
                 "models": [
-                    "gemini-2.5-flash-preview-04-17", "gemini-pro", "gemini-pro-vision"
+                    "gemini-2.5-flash-preview-04-17", "gemini-pro", "gemini-pro-vision","gemini-2.5-flash-preview-05-20"
                 ]
             },
             "anthropic": {
@@ -87,17 +87,27 @@ class Settings:
                 ]
             },
             "openrouter": {
-                "default_model": "meta-llama/llama-4-maverick:free",
+                "default_model": "deepseek/deepseek-r1-0528:free",
                 "models": [
                     "meta-llama/llama-4-maverick:free",
                     "meta-llama/llama-4-scout:free",
                     "qwen/qwen3-235b-a22b:free",
                     "microsoft/phi-4-reasoning-plus:free",
                     "deepseek/deepseek-r1:free",
+                    "deepseek/deepseek-r1-0528:free",
                     "deepseek/deepseek-chat-v3-0324:free",
                     "thudm/glm-4-32b:free",
                     "thudm/glm-z1-32b:free",
                     "moonshotai/kimi-vl-a3b-thinking:free"
+                ],
+                "vision_models": [
+                    "microsoft/phi-4-reasoning-plus:free",
+                    "moonshotai/kimi-vl-a3b-thinking:free"
+                ],
+                "chat_models": [
+                    "deepseek/deepseek-r1-0528:free",
+                    "deepseek/deepseek-r1:free",
+                    "meta-llama/llama-4-maverick:free"
                 ]
             }
         }

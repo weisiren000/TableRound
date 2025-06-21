@@ -67,7 +67,7 @@ class Designer(Agent):
         """
         self.logger.info(f"设计师 {self.name} 正在创建设计概念")
 
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
         prompt = f"""
         作为一名有四年经验的产品设计师，请基于以下关键词创建一个剪纸文创产品的设计概念：
 
@@ -119,7 +119,7 @@ class Designer(Agent):
         self.logger.info(f"设计师 {self.name} 正在生成设计提示词")
 
         from src.config.prompts.agent_prompts import DesignerPrompts
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
 
         # 使用专门的设计师AI图像生成提示词创作提示词
         prompt = DesignerPrompts.get_ai_image_prompt_generation(design_concept)
@@ -155,7 +155,7 @@ class Designer(Agent):
             return "该模型不支持图像处理"
 
         from src.config.prompts.agent_prompts import DesignerPrompts
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
 
         # 使用专门的设计师图像分析提示词
         prompt = DesignerPrompts.get_design_image_analysis_prompt()
@@ -173,3 +173,34 @@ class Designer(Agent):
         )
 
         return response
+
+    async def refine_design(self, design: str, feedback: str) -> str:
+        """
+        根据反馈优化设计方案
+
+        Args:
+            design: 原设计方案
+            feedback: 反馈意见
+
+        Returns:
+            优化后的设计方案
+        """
+        self.logger.info(f"设计师 {self.name} 正在根据反馈优化设计方案")
+
+        from src.config.prompts.template_manager import PromptTemplates
+        
+        # ... existing code ...
+
+    async def generate_image_prompt(self, design_concept: str) -> str:
+        """
+        根据设计概念生成图像提示词
+
+        Args:
+            design_concept: 设计概念
+
+        Returns:
+            图像提示词
+        """
+        self.logger.info(f"设计师 {self.name} 正在生成图像提示词")
+
+        from src.config.prompts.template_manager import PromptTemplates

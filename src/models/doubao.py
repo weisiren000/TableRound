@@ -263,7 +263,7 @@ class DoubaoModel(BaseModel):
             self.logger.error(f"基于图像生成文本失败: {str(e)}")
             return f"生成失败: {str(e)}"
 
-    async def generate_image(self, prompt: str, size: str = "1024x1024", n: int = 1) -> List[str]:
+    async def generate_image(self, prompt: str, size: str = "1024x1024", n: int = 1, watermark: bool = False) -> List[str]:
         """
         生成图像
 
@@ -271,6 +271,7 @@ class DoubaoModel(BaseModel):
             prompt: 提示词
             size: 图像尺寸
             n: 生成图像数量
+            watermark: 是否包含水印，默认为False
 
         Returns:
             生成的图像URL列表
@@ -284,7 +285,8 @@ class DoubaoModel(BaseModel):
                 "model": "doubao-seedream-3-0-t2i-250415",  # 使用官方文档中的模型ID
                 "prompt": prompt,
                 "size": size,
-                "n": n
+                "n": n,
+                "watermark": watermark
             }
 
             # 构建URL

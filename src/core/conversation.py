@@ -373,7 +373,7 @@ class ConversationManager:
 
             # 执行角色转换
             response = await agent.switch_role(new_role, keywords_str)
-            await self.stream_handler.stream_output(f"【{agent.name}】从 {agent.type} 转换为 {new_role}:\n{response}\n\n")
+            await self.stream_handler.stream_output(f"【{agent.name}】({agent.type} → {new_role}):\n{response}\n\n")
 
             # 添加到讨论历史
             self.discussion_history.append({
@@ -428,7 +428,7 @@ class ConversationManager:
         keywords_str = ", ".join(self.final_keywords)
 
         # 设置剪纸研讨会场景
-        from src.config.prompts import PromptTemplates
+        from src.config.prompts.template_manager import PromptTemplates
         paper_cutting_scenario = PromptTemplates.get_paper_cutting_scenario()
         await self.stream_handler.stream_output(f"【场景设置】\n{paper_cutting_scenario}\n\n")
 
@@ -579,15 +579,27 @@ class ConversationManager:
         self.logger.info(f"处理图片: {image_path}")
         await self.stream_handler.stream_output("\n===== 处理图片 =====\n")
 
+        # 第一步：统一进行图像描述
+        await self.stream_handler.stream_output("正在分析图像内容...\n\n")
+        image_description = await self._describe_image_once(image_path)
+
+        # 展示图像描述给用户
+        await self.stream_handler.stream_output("===== 图像描述 =====\n")
+        await self.stream_handler.stream_output(f"{image_description}\n\n")
+
+        # 保存图像描述供智能体使用
+        self.image_description = image_description
+
         # 导入颜色支持
         from src.utils.colors import Colors
 
         # 所有关键词
         all_keywords = []
 
-        # 每个智能体讲故事并提取关键词
+        # 第二步：每个智能体基于图像描述讲故事并提取关键词
+        await self.stream_handler.stream_output("===== 智能体故事创作 =====\n")
         for agent in self.agents.values():
-            story, keywords = await agent.tell_story_from_image(image_path)
+            story, keywords = await agent.tell_story_from_description(image_description, image_path)
 
             # 使用绿色显示关键词
             colored_keywords = [Colors.green(kw) for kw in keywords]
@@ -655,3 +667,47 @@ class ConversationManager:
             return random.sample(merged, self.settings.max_keywords)
 
         return merged
+
+    async def _describe_image_once(self, image_path: str) -> str:
+        """
+        统一进行图像描述（只调用一次视觉模型）
+
+        Args:
+            image_path: 图像路径
+
+        Returns:
+            图像描述
+        """
+        # 获取第一个智能体的模型来进行图像描述
+        first_agent = next(iter(self.agents.values()))
+
+        # 检查模型是否支持图像
+        if not first_agent.model.supports_vision():
+            return "该模型不支持图像处理，无法描述图像内容。"
+
+        # 使用专门的图像描述提示词（英文以确保视觉模型理解准确）
+        prompt = "Please provide a detailed description of this image, including main elements, colors, composition, style, and atmosphere. Use vivid language to describe it so that someone who hasn't seen the image can imagine the scene."
+        system_prompt = "You are a professional image analyst who excels at describing image content with vivid and detailed language."
+
+        try:
+            # 调用模型进行图像描述
+            description = await first_agent.model.generate_with_image(prompt, system_prompt, image_path)
+            return description
+        except Exception as e:
+            self.logger.error(f"图像描述失败: {str(e)}")
+            return f"图像描述失败: {str(e)}"
+
+    async def _process_role_switch(self, original_role: str, new_role: str, topic: str) -> str:
+        """
+        处理角色转换，获取提示词和结果
+
+        Args:
+            original_role: 原角色
+            new_role: 新角色
+            topic: 主题
+
+        Returns:
+            角色转换结果
+        """
+        from src.config.prompts.template_manager import PromptTemplates
+        agent = self._get_agent_by_role(original_role)
