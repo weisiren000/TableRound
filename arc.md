@@ -88,83 +88,7 @@ tableround/
 │       ├── consumer_3/       # 消费者3记忆
 │       ├── craftsman_1/      # 手工艺人记忆
 │       ├── designer_1/       # 设计师记忆
-│       ├── manufacturer_1/   # 制造商记忆
-│       ├── perf_test_file/   # 性能测试记忆
-│       └── test_file/        # 测试记忆
-├── images/                   # 测试图片目录
-│   ├── test_watermark_false_*.png  # 无水印测试图像
-│   └── test_watermark_true_*.png   # 水印测试图像
-├── tests/                    # 测试目录
-│   ├── __init__.py
-│   ├── api/                  # API测试
-│   │   ├── __init__.py
-│   │   ├── test_doubao_image_generation.py
-│   │   ├── test_doubao_watermark.py
-│   │   └── test_openrouter_basic.py
-│   ├── demos/                # 演示测试
-│   │   ├── __init__.py
-│   │   └── demo_global_memory.py
-│   ├── features/             # 功能测试
-│   │   ├── __init__.py
-│   │   ├── test_improvements_verification.py
-│   │   ├── test_logging_encoding.py
-│   │   ├── test_performance.py
-│   │   ├── test_role_switch_improvements.py
-│   │   └── test_simple_improvements.py
-│   ├── integration/          # 集成测试
-│   │   ├── __init__.py
-│   │   ├── test_comprehensive.py
-│   │   ├── test_migration.py
-│   │   ├── test_quick_migration.py
-│   │   ├── test_simple_global.py
-│   │   └── test_simple_migration.py
-│   ├── memory/               # 记忆测试
-│   │   ├── __init__.py
-│   │   ├── test_enhanced_memory.py
-│   │   ├── test_global_memory.py
-│   │   ├── test_memory_diagnosis.py
-│   │   ├── test_redis_memory.py
-│   │   └── test_redis_simple.py
-│   ├── README.md             # 测试说明文档
-│   ├── run_tests.py          # 测试运行脚本
-│   ├── test_agents.py
-│   ├── test_colors.py
-│   ├── test_compression_integration.py
-│   ├── test_conversation.py
-│   ├── test_current_config.py
-│   ├── test_google_curl.ps1
-│   ├── test_google_fixed.py
-│   ├── test_google_simple.py
-│   ├── test_google_vision.py
-│   ├── test_image_compression.py
-│   ├── test_image_path_debug.py
-│   ├── test_memory.py
-│   ├── test_models.py
-│   ├── test_role_playing.py
-│   ├── test_single_agent_vision.py
-│   └── test_two_stage_model.py
-├── _archive/                 # 归档文件
-│   └── STACK1/
-│       ├── arc.jpeg
-│       ├── TECH_STACK.jpeg
-│       ├── TECH_STACK.md
-│       └── TECH_STACK.pdf
-├── _experiments/             # 实验记录
-│   ├── exp/                  # 经验总结
-│   │   ├── EXP1.md
-│   │   ├── EXP2.md
-│   │   ├── EXP3.md
-│   │   └── ...
-│   ├── mem/                  # 记忆记录
-│   │   ├── MEM1.md
-│   │   ├── MEM2.md
-│   │   └── ...
-│   └── sum/                  # 对话总结
-│       ├── SUM1.md
-│       ├── SUM2.md
-│       ├── SUM3.md
-│       └── ...
-├── memory_enhancement_patch.py # 记忆增强补丁
+│       └── manufacturer_1/   # 制造商记忆
 ├── README.md                # 项目说明
 ├── requirements.txt         # 依赖列表
 ├── run.py                   # 启动脚本
@@ -574,13 +498,7 @@ MODEL_REGISTRY = {
 
 ### 文档记录 📚
 
-#### 实验记录目录 (_experiments/)
-- **exp/**: 开发经验和技术总结
-- **sum/**: 对话内容和功能总结
-- **mem/**: 项目记忆和知识积累
-
 #### 核心文档
-- **TECH_STACK.md**: 详细技术栈讲解
 - **arc.md**: 项目架构文档 (本文件)
 - **README.md**: 项目说明和使用指南
 
