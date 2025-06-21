@@ -26,13 +26,13 @@ class GlobalMemory:
     4. 维护会议的完整时间线
     """
     
-    def __init__(self, session_id: str, storage_type: str = "auto"):
+    def __init__(self, session_id: str, storage_type: str = "redis"):
         """
         初始化全局记忆
-        
+
         Args:
             session_id: 会议会话ID
-            storage_type: 存储类型 (auto/file/redis)
+            storage_type: 存储类型 (只支持redis，保持兼容性)
         """
         self.session_id = session_id
         self.storage_type = storage_type

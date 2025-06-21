@@ -9,9 +9,7 @@ import logging
 import random
 from typing import Dict, List, Any, Optional
 
-from typing import Union
 from src.core.agent import Agent
-from src.core.memory import Memory
 from src.core.memory_adapter import MemoryAdapter
 from src.models.base import BaseModel
 
@@ -24,7 +22,7 @@ class Designer(Agent):
         agent_id: str,
         name: str,
         model: BaseModel,
-        memory: Union[Memory, MemoryAdapter],
+        memory: MemoryAdapter,
         **kwargs
     ):
         """
@@ -95,7 +93,7 @@ class Designer(Agent):
         response = await self.model.generate(prompt, system_prompt)
 
         # 将设计概念存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "design_concept",
             {
                 "role": self.current_role,
@@ -127,7 +125,7 @@ class Designer(Agent):
         response = await self.model.generate(prompt, system_prompt)
 
         # 将设计提示词存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "design_prompt",
             {
                 "role": self.current_role,
@@ -163,7 +161,7 @@ class Designer(Agent):
         response = await self.model.generate_with_image(prompt, system_prompt, image_path)
 
         # 将分析结果存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "design_analysis",
             {
                 "role": self.current_role,

@@ -8,9 +8,7 @@
 import logging
 from typing import List
 
-from typing import Union
 from src.core.agent import Agent
-from src.core.memory import Memory
 from src.core.memory_adapter import MemoryAdapter
 from src.models.base import BaseModel
 
@@ -23,7 +21,7 @@ class Craftsman(Agent):
         agent_id: str,
         name: str,
         model: BaseModel,
-        memory: Union[Memory, MemoryAdapter],
+        memory: MemoryAdapter,
         **kwargs
     ):
         """
@@ -74,7 +72,7 @@ class Craftsman(Agent):
         response = await self.model.generate(prompt, system_prompt)
 
         # 将评估结果存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "design_evaluation",
             {
                 "role": self.current_role,
@@ -118,7 +116,7 @@ class Craftsman(Agent):
                 material_names = ["宣纸", "彩纸", "牛皮纸", "丝绸", "木材"]
 
         # 将材料建议存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "material_suggestion",
             {
                 "role": self.current_role,

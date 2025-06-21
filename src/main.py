@@ -87,7 +87,7 @@ async def main():
             await init_redis()
             logger.info("Redis连接初始化成功")
         except Exception as e:
-            logger.warning(f"Redis连接初始化失败，将使用文件存储: {str(e)}")
+            logger.warning(f"Redis连接初始化失败: {str(e)}")
 
         # 创建上帝视角
         god_view = GodView(settings)

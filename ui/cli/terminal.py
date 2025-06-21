@@ -15,7 +15,6 @@ from typing import Dict, List, Optional
 from src.config.settings import Settings
 from src.core.agent import Agent
 from src.core.conversation import ConversationManager
-from src.core.memory import Memory
 from src.models.openai import OpenAIModel
 
 
@@ -91,11 +90,11 @@ async def create_agents(conversation_manager: ConversationManager, settings: Set
             agent_id = f"{agent_type}_{i+1}"
             agent_name = f"{agent_types.get(agent_type, agent_type)}{i+1}"
 
-            # 创建记忆模块（使用MemoryAdapter支持Redis）
+            # 创建记忆模块（使用Redis统一存储）
             from src.core.memory_adapter import MemoryAdapter
             memory = MemoryAdapter(
                 agent_id=agent_id,
-                storage_type="auto",  # 自动选择最佳存储方式
+                storage_type="redis",  # 统一使用Redis存储
                 max_tokens=settings.memory_max_tokens,
                 settings=settings
             )

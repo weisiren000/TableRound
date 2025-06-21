@@ -8,9 +8,7 @@
 import logging
 from typing import Dict, List
 
-from typing import Union
 from src.core.agent import Agent
-from src.core.memory import Memory
 from src.core.memory_adapter import MemoryAdapter
 from src.models.base import BaseModel
 
@@ -23,7 +21,7 @@ class Manufacturer(Agent):
         agent_id: str,
         name: str,
         model: BaseModel,
-        memory: Union[Memory, MemoryAdapter],
+        memory: MemoryAdapter,
         **kwargs
     ):
         """
@@ -89,7 +87,7 @@ class Manufacturer(Agent):
         response = await self.model.generate(prompt, system_prompt)
 
         # 将评估结果存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "feasibility_evaluation",
             {
                 "role": self.current_role,
@@ -139,7 +137,7 @@ class Manufacturer(Agent):
             }
 
         # 将成本估算存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "cost_estimation",
             {
                 "role": self.current_role,

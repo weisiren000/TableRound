@@ -16,3 +16,7 @@ _experiments
 images/
 memory_enhancement_patch.py
 .cursor
+redis_data_viewer.py
+test_meeting_cleaner.py
+test_redis_clean_simple.py
+test_redis_only_architecture.py

@@ -9,9 +9,7 @@ import logging
 import random
 from typing import Dict, List, Any, Optional
 
-from typing import Union
 from src.core.agent import Agent
-from src.core.memory import Memory
 from src.core.memory_adapter import MemoryAdapter
 from src.models.base import BaseModel
 
@@ -24,7 +22,7 @@ class Consumer(Agent):
         agent_id: str,
         name: str,
         model: BaseModel,
-        memory: Union[Memory, MemoryAdapter],
+        memory: MemoryAdapter,
         **kwargs
     ):
         """
@@ -112,7 +110,7 @@ class Consumer(Agent):
         response = await self.model.generate(prompt, system_prompt)
 
         # 将评估结果存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "product_evaluation",
             {
                 "role": self.current_role,
@@ -168,7 +166,7 @@ class Consumer(Agent):
                 suggestions = ["提高产品质量", "降低价格", "增加文化元素", "改进包装设计", "增加实用功能"]
 
         # 将改进建议存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "improvement_suggestion",
             {
                 "role": self.current_role,
@@ -211,7 +209,7 @@ class Consumer(Agent):
         response = await self.model.generate(prompt, system_prompt)
 
         # 将市场潜力评估存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "design_market_potential",
             {
                 "role": self.current_role,
@@ -254,7 +252,7 @@ class Consumer(Agent):
         response = await self.model.generate(prompt, system_prompt)
 
         # 将反馈意见存入记忆
-        self.memory.add_memory(
+        await self.memory.add_memory(
             "design_feedback",
             {
                 "role": self.current_role,
