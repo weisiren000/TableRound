@@ -60,6 +60,10 @@ class Settings:
         self.memory_storage_type = os.getenv("MEMORY_STORAGE_TYPE", "memory")
         self.memory_max_tokens = int(os.getenv("MEMORY_MAX_TOKENS", "4000"))
 
+        # 会议设置
+        self.clean_redis_on_start = os.getenv("CLEAN_REDIS_ON_START", "true").lower() == "true"
+        self.preserve_agent_memories = os.getenv("PRESERVE_AGENT_MEMORIES", "false").lower() == "true"
+
         # 投票设置
         self.voting_threshold = float(os.getenv("VOTING_THRESHOLD", "0.6"))
 

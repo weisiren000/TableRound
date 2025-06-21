@@ -14,19 +14,21 @@ from typing import Dict, List, Any, Tuple, Optional
 
 from src.core.agent import Agent
 from src.core.global_memory import GlobalMemory
+from src.core.meeting_cleaner import clean_redis_for_new_meeting, get_redis_status
 from src.utils.stream import StreamHandler
 
 
 class ConversationManager:
     """对话管理器"""
 
-    def __init__(self, god_view, settings):
+    def __init__(self, god_view, settings, clean_redis_on_start: Optional[bool] = None):
         """
         初始化对话管理器
 
         Args:
             god_view: 上帝视角
             settings: 全局设置
+            clean_redis_on_start: 是否在启动时清理Redis数据（None时使用配置文件设置）
         """
         self.god_view = god_view
         self.settings = settings
@@ -39,10 +41,70 @@ class ConversationManager:
         self.stream_handler = StreamHandler()
         self.logger = logging.getLogger("conversation")
 
+        # 使用配置文件设置或传入参数
+        self.clean_redis_on_start = (
+            clean_redis_on_start if clean_redis_on_start is not None
+            else getattr(settings, 'clean_redis_on_start', True)
+        )
+
         # 创建全局记忆实例
         self.session_id = str(uuid.uuid4())
         self.global_memory = GlobalMemory(self.session_id, storage_type="auto")
         self.logger.info(f"创建会议会话: {self.session_id}")
+
+        # 标记是否已清理Redis
+        self._redis_cleaned = False
+
+    async def prepare_for_new_meeting(self, preserve_agent_memories: bool = False) -> Dict[str, Any]:
+        """
+        为新会议准备Redis环境
+
+        Args:
+            preserve_agent_memories: 是否保留智能体历史记忆
+
+        Returns:
+            清理结果
+        """
+        if not self.clean_redis_on_start or self._redis_cleaned:
+            return {"skipped": True, "reason": "清理已禁用或已执行"}
+
+        try:
+            self.logger.info("🧹 为新会议清理Redis数据...")
+            await self.stream_handler.stream_output("🧹 正在为新会议清理数据...\n")
+
+            # 获取清理前的状态
+            before_status = await get_redis_status()
+
+            # 执行清理
+            clean_result = await clean_redis_for_new_meeting(
+                preserve_agent_memories=preserve_agent_memories,
+                backup_before_clean=True
+            )
+
+            # 获取清理后的状态
+            after_status = await get_redis_status()
+
+            if clean_result.get("success", False):
+                self._redis_cleaned = True
+                self.logger.info(f"✅ Redis清理完成，耗时 {clean_result.get('duration', 0)} 秒")
+
+                # 显示清理结果
+                await self.stream_handler.stream_output(
+                    f"✅ 数据清理完成！\n"
+                    f"   清理前: {before_status.get('total_keys', 0)} 个键\n"
+                    f"   清理后: {after_status.get('total_keys', 0)} 个键\n"
+                    f"   耗时: {clean_result.get('duration', 0)} 秒\n\n"
+                )
+            else:
+                self.logger.warning(f"⚠️ Redis清理失败: {clean_result.get('error', 'Unknown error')}")
+                await self.stream_handler.stream_output("⚠️ 数据清理失败，但不影响会议进行\n\n")
+
+            return clean_result
+
+        except Exception as e:
+            self.logger.error(f"❌ Redis清理异常: {str(e)}")
+            await self.stream_handler.stream_output("❌ 数据清理异常，但不影响会议进行\n\n")
+            return {"success": False, "error": str(e)}
 
     async def add_agent(self, agent: Agent) -> None:
         """
@@ -109,6 +171,10 @@ class ConversationManager:
             topic: 讨论主题
             image_path: 可选的图片路径，用于讨论参考
         """
+        # 为新会议清理Redis数据
+        preserve_memories = getattr(self.settings, 'preserve_agent_memories', False)
+        await self.prepare_for_new_meeting(preserve_agent_memories=preserve_memories)
+
         self.logger.info(f"开始对话，主题: {topic}")
         self.topic = topic
         self.stage = "introduction"

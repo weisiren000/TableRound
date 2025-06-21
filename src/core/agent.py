@@ -11,7 +11,6 @@ import re
 from typing import Dict, List, Any, Tuple, Optional, Union
 
 from src.models.base import BaseModel
-from src.core.memory import Memory
 from src.core.memory_adapter import MemoryAdapter
 from src.core.global_memory import GlobalMemory
 
@@ -25,7 +24,7 @@ class Agent:
         agent_type: str,
         name: str,
         model: BaseModel,
-        memory: Union[Memory, MemoryAdapter],
+        memory: MemoryAdapter,
         global_memory: Optional[GlobalMemory] = None,
         **kwargs
     ):
