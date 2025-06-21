@@ -61,8 +61,6 @@ tableround/
 │   ├── images/            # 图片目录
 │   ├── keywords/          # 关键词目录
 │   └── memories/          # 记忆目录
-├── docs/                  # 文档目录
-├── logs/                  # 日志目录
 ├── src/                   # 源代码目录
 │   ├── agents/            # 智能体定义
 │   ├── api/               # API接口
@@ -77,8 +75,6 @@ tableround/
 ├── requirements.txt       # 依赖列表
 └── run.py                 # 启动脚本
 ```
-
-详细的项目结构请参见 [项目架构布局](docs/项目架构布局.md)。
 
 ## 使用示例
 
