@@ -61,8 +61,8 @@ class Settings:
         self.memory_max_tokens = int(os.getenv("MEMORY_MAX_TOKENS", "4000"))
 
         # 会议设置
-        self.clean_redis_on_start = os.getenv("CLEAN_REDIS_ON_START", "true").lower() == "true"
-        self.preserve_agent_memories = os.getenv("PRESERVE_AGENT_MEMORIES", "false").lower() == "true"
+        self.clean_redis_on_start = self._parse_bool_env("CLEAN_REDIS_ON_START", "true")
+        self.preserve_agent_memories = self._parse_bool_env("PRESERVE_AGENT_MEMORIES", "false")
 
         # 投票设置
         self.voting_threshold = float(os.getenv("VOTING_THRESHOLD", "0.6"))
@@ -81,14 +81,31 @@ class Settings:
 
         # 日志设置
         self.log_level = os.getenv("LOG_LEVEL", "INFO")
-        self.log_to_file = os.getenv("LOG_TO_FILE", "true").lower() == "true"
+        self.log_to_file = self._parse_bool_env("LOG_TO_FILE", "true")
 
         # API设置
         self.api_host = os.getenv("API_HOST", "0.0.0.0")
         self.api_port = int(os.getenv("API_PORT", "8000"))
 
         # 其他设置
-        self.debug = os.getenv("DEBUG", "false").lower() == "true"
+        self.debug = self._parse_bool_env("DEBUG", "false")
+
+    def _parse_bool_env(self, env_name: str, default_value: str) -> bool:
+        """
+        解析布尔型环境变量，支持去除注释
+
+        Args:
+            env_name: 环境变量名
+            default_value: 默认值
+
+        Returns:
+            布尔值
+        """
+        value = os.getenv(env_name, default_value)
+        # 去除注释（以#开头的部分）
+        if '#' in value:
+            value = value.split('#')[0].strip()
+        return value.lower() == "true"
 
     def get_api_key(self, provider: str) -> Optional[str]:
         """
