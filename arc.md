@@ -426,7 +426,7 @@ MODEL_REGISTRY = {
 
 ## 最新更新 🆕
 
-### v2.2 (2025-06-22)
+### v1.0.3 (2025-06-22)
 - ✅ **Redis自动清理修复**: 修复了启动对话时Redis清理功能失效的问题
 - ✅ **环境变量解析优化**: 支持带注释的环境变量正确解析
 - ✅ **Settings类增强**: 新增`_parse_bool_env`方法处理布尔型环境变量
@@ -538,5 +538,5 @@ MODEL_REGISTRY = {
 ---
 
 *最后更新: 2025-06-22*
-*版本: v2.2*
+*版本: v1.0.3*
 *技术栈: Python 3.8+ | AsyncIO | Redis | OpenRouter | Google Gemini*
