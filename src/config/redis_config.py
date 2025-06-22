@@ -161,23 +161,35 @@ class RedisManager:
 
 
 # 全局Redis管理器实例
-redis_manager = RedisManager()
+redis_manager: Optional[RedisManager] = None
+
+
+def _get_redis_manager() -> RedisManager:
+    """获取Redis管理器实例，确保使用正确的设置"""
+    global redis_manager
+    if redis_manager is None:
+        # 从环境变量加载设置
+        settings = RedisSettings()
+        redis_manager = RedisManager(settings)
+    return redis_manager
 
 
 async def get_redis_client() -> redis.Redis:
     """
     获取Redis客户端的便捷函数
-    
+
     Returns:
         Redis客户端实例
     """
-    return await redis_manager.get_client()
+    manager = _get_redis_manager()
+    return await manager.get_client()
 
 
 async def init_redis() -> None:
     """初始化Redis连接"""
     try:
-        await redis_manager.get_client()
+        manager = _get_redis_manager()
+        await manager.get_client()
     except Exception as e:
         print(f"Redis初始化失败: {str(e)}")
         raise
@@ -185,4 +197,5 @@ async def init_redis() -> None:
 
 async def close_redis() -> None:
     """关闭Redis连接"""
-    await redis_manager.close()
+    manager = _get_redis_manager()
+    await manager.close()
