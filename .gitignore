@@ -20,3 +20,4 @@ redis_data_viewer.py
 test_meeting_cleaner.py
 test_redis_clean_simple.py
 test_redis_only_architecture.py
+enhanced_ui_demo.py

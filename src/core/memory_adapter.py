@@ -37,8 +37,14 @@ class MemoryAdapter:
         self.logger = logging.getLogger(f"memory_adapter.{agent_id}")
 
         self._memory_impl: Optional[RedisMemory] = None
-        self._redis_settings = RedisSettings()
+        self._redis_settings: Optional[RedisSettings] = None
     
+    def _get_redis_settings(self) -> RedisSettings:
+        """获取Redis设置实例"""
+        if self._redis_settings is None:
+            self._redis_settings = RedisSettings()
+        return self._redis_settings
+
     async def _get_memory_impl(self) -> RedisMemory:
         """获取Redis记忆实现实例"""
         if self._memory_impl is not None:
@@ -46,11 +52,12 @@ class MemoryAdapter:
 
         try:
             redis_client = await get_redis_client()
+            redis_settings = self._get_redis_settings()
             self._memory_impl = RedisMemory(
                 agent_id=self.agent_id,
                 redis_client=redis_client,
-                max_memories=self._redis_settings.MEMORY_MAX_SIZE,
-                ttl=self._redis_settings.MEMORY_TTL
+                max_memories=redis_settings.MEMORY_MAX_SIZE,
+                ttl=redis_settings.MEMORY_TTL
             )
             self.logger.info(f"使用Redis存储记忆: {self.agent_id}")
         except Exception as e:
@@ -138,7 +145,8 @@ class MemoryAdapter:
     
     def is_redis_enabled(self) -> bool:
         """检查是否启用了Redis"""
-        return self._redis_settings.ENABLE_REDIS
+        redis_settings = self._get_redis_settings()
+        return redis_settings.ENABLE_REDIS
     
     async def get_storage_info(self) -> Dict[str, Any]:
         """
@@ -147,16 +155,17 @@ class MemoryAdapter:
         Returns:
             存储信息字典
         """
+        redis_settings = self._get_redis_settings()
         info = {
             "agent_id": self.agent_id,
             "storage_type": "redis",
-            "redis_enabled": self._redis_settings.ENABLE_REDIS,
+            "redis_enabled": redis_settings.ENABLE_REDIS,
             "max_tokens": self.max_tokens,
-            "max_memories": self._redis_settings.MEMORY_MAX_SIZE,
-            "ttl": self._redis_settings.MEMORY_TTL,
-            "redis_host": self._redis_settings.REDIS_HOST,
-            "redis_port": self._redis_settings.REDIS_PORT,
-            "redis_db": self._redis_settings.REDIS_DB
+            "max_memories": redis_settings.MEMORY_MAX_SIZE,
+            "ttl": redis_settings.MEMORY_TTL,
+            "redis_host": redis_settings.REDIS_HOST,
+            "redis_port": redis_settings.REDIS_PORT,
+            "redis_db": redis_settings.REDIS_DB
         }
 
         return info

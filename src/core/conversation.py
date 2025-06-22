@@ -38,7 +38,7 @@ class ConversationManager:
         self.discussion_history = []
         self.voted_keywords = []
         self.final_keywords = []
-        self.stream_handler = StreamHandler()
+        self.stream_handler = StreamHandler(enable_ui_enhancement=True)
         self.logger = logging.getLogger("conversation")
 
         # 使用配置文件设置或传入参数
@@ -227,11 +227,26 @@ class ConversationManager:
     async def introduce_agents(self) -> None:
         """智能体自我介绍"""
         self.logger.info("智能体自我介绍")
-        await self.stream_handler.stream_output("\n===== 智能体自我介绍 =====\n")
+
+        # 使用美化的标题
+        await self.stream_handler.stream_enhanced_output("", "introduction_header")
 
         for agent in self.agents.values():
-            introduction = await agent.introduce()
-            await self.stream_handler.stream_output(f"【{agent.name}】自我介绍:\n{introduction}\n\n")
+            # 设置当前智能体信息
+            self.stream_handler.set_current_agent(agent.name, agent.type)
+
+            # 启动加载动画
+            from src.ui_enhanced.animations import LoadingSpinner
+            spinner = LoadingSpinner(f"{agent.name} 正在准备自我介绍", "spinner")
+            spinner.start()
+
+            try:
+                introduction = await agent.introduce()
+            finally:
+                spinner.stop()
+
+            # 使用美化的智能体介绍输出
+            await self.stream_handler.stream_enhanced_output(introduction, "agent_introduction")
 
             # 添加到讨论历史
             self.discussion_history.append({
@@ -243,7 +258,9 @@ class ConversationManager:
     async def start_discussion(self) -> None:
         """开始讨论"""
         self.logger.info(f"开始讨论，主题: {self.topic}")
-        await self.stream_handler.stream_output(f"\n===== 开始讨论: {self.topic} =====\n")
+
+        # 使用美化的讨论标题
+        await self.stream_handler.stream_enhanced_output("", "discussion_header")
 
         # 获取所有智能体并按特定顺序排列
         # 对话顺序：手工艺人、消费者、制造商人、消费者、设计师、消费者
@@ -296,8 +313,21 @@ class ConversationManager:
 
             # 每个智能体发言
             for agent in agents:
-                response = await agent.discuss(self.topic, context)
-                await self.stream_handler.stream_output(f"【{agent.name}】:\n{response}\n\n")
+                # 设置当前智能体信息
+                self.stream_handler.set_current_agent(agent.name, agent.type)
+
+                # 启动加载动画
+                from src.ui_enhanced.animations import LoadingSpinner
+                spinner = LoadingSpinner(f"{agent.name} 正在思考", "spinner")
+                spinner.start()
+
+                try:
+                    response = await agent.discuss(self.topic, context)
+                finally:
+                    spinner.stop()
+
+                # 使用美化的讨论输出
+                await self.stream_handler.stream_enhanced_output(response, "agent_discussion")
 
                 # 添加到讨论历史
                 self.discussion_history.append({
@@ -323,7 +353,15 @@ class ConversationManager:
 
         # 每个智能体提取关键词
         for agent in self.agents.values():
-            keywords = await agent.extract_keywords(discussion_content, self.topic)
+            # 启动加载动画
+            from src.ui_enhanced.animations import LoadingSpinner
+            spinner = LoadingSpinner(f"{agent.name} 正在提取关键词", "dots")
+            spinner.start()
+
+            try:
+                keywords = await agent.extract_keywords(discussion_content, self.topic)
+            finally:
+                spinner.stop()
 
             # 使用绿色显示关键词
             colored_keywords = [Colors.green(kw) for kw in keywords]
@@ -665,7 +703,15 @@ class ConversationManager:
         # 第二步：每个智能体基于图像描述讲故事并提取关键词
         await self.stream_handler.stream_output("===== 智能体故事创作 =====\n")
         for agent in self.agents.values():
-            story, keywords = await agent.tell_story_from_description(image_description, image_path)
+            # 启动加载动画
+            from src.ui_enhanced.animations import LoadingSpinner
+            spinner = LoadingSpinner(f"{agent.name} 正在创作故事", "blocks")
+            spinner.start()
+
+            try:
+                story, keywords = await agent.tell_story_from_description(image_description, image_path)
+            finally:
+                spinner.stop()
 
             # 使用绿色显示关键词
             colored_keywords = [Colors.green(kw) for kw in keywords]
