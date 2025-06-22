@@ -107,20 +107,24 @@ class PromptTemplateManager:
         role_description = self._role_descriptions.get(role, "")
         return BasePrompts.get_discussion_prompt(role, role_description, topic)
     
-    def get_keyword_extraction_prompt(self, content: str, topic: str, 
-                                    extraction_type: str = "basic") -> str:
+    def get_keyword_extraction_prompt(self, content: str, topic: str,
+                                    extraction_type: str = "design_elements",
+                                    role: str = None) -> str:
         """
         获取关键词提取提示词
-        
+
         Args:
             content: 要提取关键词的内容
             topic: 主题
-            extraction_type: 提取类型 (basic, domain, multilingual, hierarchical, sentiment)
-            
+            extraction_type: 提取类型 (basic, domain, multilingual, hierarchical, sentiment, design_elements)
+            role: 角色名称（用于设计要素提取）
+
         Returns:
             关键词提取提示词
         """
-        if extraction_type == "basic":
+        if extraction_type == "design_elements" and role:
+            return KeywordExtractionPrompts.get_design_elements_prompt(content, topic, role)
+        elif extraction_type == "basic":
             return KeywordExtractionPrompts.get_basic_extraction_prompt(content, topic)
         elif extraction_type == "multilingual":
             return KeywordExtractionPrompts.get_multilingual_prompt(content, topic)
@@ -129,8 +133,11 @@ class PromptTemplateManager:
         elif extraction_type == "sentiment":
             return KeywordExtractionPrompts.get_sentiment_based_prompt(content, topic)
         else:
-            # 默认使用基础提取
-            return KeywordExtractionPrompts.get_basic_extraction_prompt(content, topic)
+            # 默认使用设计要素提取（如果有角色信息）
+            if role:
+                return KeywordExtractionPrompts.get_design_elements_prompt(content, topic, role)
+            else:
+                return KeywordExtractionPrompts.get_basic_extraction_prompt(content, topic)
     
     def get_image_story_prompt(self, role: str) -> str:
         """
@@ -341,9 +348,11 @@ class PromptTemplates:
         return prompt_manager.get_discussion_prompt(role, topic)
     
     @staticmethod
-    def get_keyword_extraction_prompt(content: str, topic: str) -> str:
+    def get_keyword_extraction_prompt(content: str, topic: str,
+                                    extraction_type: str = "design_elements",
+                                    role: str = None) -> str:
         """向后兼容的关键词提取提示词获取方法"""
-        return prompt_manager.get_keyword_extraction_prompt(content, topic)
+        return prompt_manager.get_keyword_extraction_prompt(content, topic, extraction_type, role)
     
     @staticmethod
     def get_image_story_prompt(role: str) -> str:

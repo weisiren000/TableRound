@@ -46,25 +46,31 @@ class Consumer(Agent):
         # 消费者特定属性
         consumer_id = int(agent_id.split("_")[-1]) if "_" in agent_id else 1
 
-        # 根据消费者ID设置不同的属性
+        # 根据消费者ID设置不同的属性和固定名字
         if consumer_id == 1:
-            # 第一个消费者：学生，23岁
+            # 第一个消费者：学生，23岁，阿依古丽
             self.age = kwargs.get("age", 23)
             self.background = kwargs.get("background", "学生")
             self.experience = kwargs.get("experience", "少数民族，喜欢购买具有文化特色的手工艺品")
             self.interests = kwargs.get("interests", ["文化", "艺术", "手工艺品"])
+            if name == "消费者1" or name.startswith("消费者"):
+                self.name = "阿依古丽"
         elif consumer_id == 2:
-            # 第二个消费者：自由职业者，27岁
+            # 第二个消费者：自由职业者，27岁，张小雅
             self.age = kwargs.get("age", 27)
             self.background = kwargs.get("background", "自由职业者")
             self.experience = kwargs.get("experience", "喜欢旅游，经常购买文化创意品")
             self.interests = kwargs.get("interests", ["旅游", "文化创意", "收藏"])
+            if name == "消费者2" or name.startswith("消费者"):
+                self.name = "张小雅"
         else:
-            # 第三个消费者：学生，22岁
+            # 第三个消费者：学生，22岁，王晓萌
             self.age = kwargs.get("age", 22)
             self.background = kwargs.get("background", "学生")
             self.experience = kwargs.get("experience", "经常购买文化创意品")
             self.interests = kwargs.get("interests", ["设计", "创意", "时尚"])
+            if name == "消费者3" or name.startswith("消费者"):
+                self.name = "王晓萌"
 
         # 消费者通用属性
         self.gender = kwargs.get("gender", random.choice(["男", "女"]))

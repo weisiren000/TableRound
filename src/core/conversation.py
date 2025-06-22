@@ -399,12 +399,28 @@ class ConversationManager:
         from src.utils.voting import VotingSystem
         voting_system = VotingSystem(threshold=self.settings.voting_threshold)
 
-        # 每个智能体投票
+        # 获取讨论内容作为投票上下文
+        discussion_content = "\n".join([
+            f"{item['agent']}: {item['content']}"
+            for item in self.discussion_history
+            if item['stage'] == "discussion"
+        ])
+
+        # 每个智能体进行智能投票
         agent_keywords = {}
         for agent in self.agents.values():
-            # 随机选择一些关键词投票
-            vote_count = min(len(unique_keywords), 5)
-            voted = random.sample(unique_keywords, vote_count)
+            # 启动加载动画
+            from src.ui_enhanced.animations import LoadingSpinner
+            spinner = LoadingSpinner(f"{agent.name} 正在投票", "dots")
+            spinner.start()
+
+            try:
+                # 使用智能投票而不是随机投票
+                vote_count = min(len(unique_keywords), 5)
+                voted = await agent.intelligent_vote(unique_keywords, discussion_content, vote_count)
+            finally:
+                spinner.stop()
+
             agent_keywords[agent.id] = voted
 
             voted_str = ", ".join(voted)
@@ -653,8 +669,8 @@ class ConversationManager:
         # 使用豆包API生成图像
         await self.stream_handler.stream_output("\n正在使用豆包API生成图像...\n")
 
-        # 构建完整的提示词
-        prompt = f"对称的剪纸风格的中国传统蝙蝠吉祥纹样，{user_input}"
+        # 构建完整的提示词 - 用户输入前置以提高权重
+        prompt = f"{user_input}，对称的剪纸风格的中国传统蝙蝠吉祥纹样"
 
         # 生成图像
         image_path = await image_processor.generate_image(prompt, provider="doubao")

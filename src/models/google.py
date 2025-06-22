@@ -11,7 +11,7 @@ import os
 import asyncio
 from typing import Optional, Dict, Any, List, Callable
 
-import aiohttp
+import requests
 
 from src.models.base import BaseModel
 
@@ -77,45 +77,87 @@ class GoogleModel(BaseModel):
         """
         try:
             messages = []
-            
+
             # 添加系统提示词
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
-            
+
             # 添加用户提示词
             messages.append({"role": "user", "content": prompt})
-            
-            # 构建请求数据
+
+            # 构建请求数据 - 使用OpenAI兼容格式
             data = {
                 "model": self.model_name,
                 "messages": messages,
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens
             }
-            
-            # 构建URL
+
+            # 构建URL - 使用OpenAI兼容端点
             url = f"{self.base_url.rstrip('/')}/chat/completions"
-            
-            # 发送请求
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url,
-                    json=data,
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-goog-api-key": self.api_key
-                    }
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        self.logger.error(f"API请求失败: {response.status}, {error_text}")
-                        return f"生成失败: API请求返回 {response.status}"
-                    
-                    result = await response.json()
-                    
-                    # 获取生成的文本
-                    return result["choices"][0]["message"]["content"]
-        
+
+            # 构建请求头
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}"
+            }
+
+            # 发送请求，带重试机制
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    self.logger.info(f"正在发送请求到: {url}")
+
+                    # 使用同步requests库，在异步函数中运行
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            requests.post,
+                            url,
+                            json=data,
+                            headers=headers,
+                            timeout=30
+                        )
+                        response = future.result()
+
+                    if response.status_code == 429:  # 速率限制
+                        if attempt < max_retries - 1:
+                            wait_time = (attempt + 1) * 5  # 递增等待时间
+                            self.logger.warning(f"遇到速率限制，等待{wait_time}秒后重试...")
+                            await asyncio.sleep(wait_time)
+                            continue
+                        else:
+                            return "生成失败: 超出API速率限制，请稍后再试"
+
+                    if response.status_code != 200:
+                        error_text = response.text
+                        self.logger.error(f"API请求失败: {response.status_code}, {error_text}")
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(2)  # 短暂等待后重试
+                            continue
+                        return f"生成失败: API请求返回 {response.status_code}"
+
+                    result = response.json()
+
+                    # 获取生成的文本 - OpenAI格式
+                    if "choices" in result and result["choices"]:
+                        return result["choices"][0]["message"]["content"]
+
+                    return "生成失败: 无法解析响应"
+
+                except requests.exceptions.Timeout:
+                    if attempt < max_retries - 1:
+                        self.logger.warning(f"请求超时，正在重试... (尝试 {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(5)
+                        continue
+                    return "生成失败: 请求超时"
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        self.logger.warning(f"请求失败: {e}，正在重试... (尝试 {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(2)
+                        continue
+                    raise e
+
         except Exception as e:
             self.logger.error(f"生成文本失败: {str(e)}")
             return f"生成失败: {str(e)}"
@@ -168,7 +210,22 @@ class GoogleModel(BaseModel):
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    async with aiohttp.ClientSession() as session:
+                    # 创建连接器，设置更宽松的超时
+                    connector = aiohttp.TCPConnector(
+                        limit=100,
+                        limit_per_host=30,
+                        ttl_dns_cache=300,
+                        use_dns_cache=True,
+                    )
+
+                    timeout = aiohttp.ClientTimeout(
+                        total=120,  # 总超时时间120秒
+                        connect=30,  # 连接超时30秒
+                        sock_read=60  # 读取超时60秒
+                    )
+
+                    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                        self.logger.info(f"正在发送图像请求到: {url}")
                         async with session.post(
                             url,
                             json=data,
@@ -177,8 +234,7 @@ class GoogleModel(BaseModel):
                             },
                             params={
                                 "key": self.api_key
-                            } if self.api_key else None,
-                            timeout=aiohttp.ClientTimeout(total=120)  # 120秒超时
+                            } if self.api_key else None
                         ) as response:
                             if response.status == 429:  # 速率限制
                                 if attempt < max_retries - 1:
@@ -233,13 +289,13 @@ class GoogleModel(BaseModel):
 
 
     async def generate_stream(
-        self, 
-        prompt: str, 
-        system_prompt: str = "", 
-        callback: Callable[[str], None] = None
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        callback: Optional[Callable[[str], None]] = None
     ) -> str:
         """
-        流式生成文本
+        流式生成文本 - 注意：Google Gemini API不支持流式输出，这里使用普通生成然后模拟流式输出
 
         Args:
             prompt: 提示词
@@ -250,66 +306,20 @@ class GoogleModel(BaseModel):
             生成的完整文本
         """
         try:
-            messages = []
-            
-            # 添加系统提示词
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            
-            # 添加用户提示词
-            messages.append({"role": "user", "content": prompt})
-            
-            # 构建请求数据
-            data = {
-                "model": self.model_name,
-                "messages": messages,
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-                "stream": True
-            }
-            
-            # 构建URL
-            url = f"{self.base_url.rstrip('/')}/chat/completions"
-            
-            # 发送请求
-            full_text = ""
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url,
-                    json=data,
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-goog-api-key": self.api_key
-                    }
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        self.logger.error(f"API请求失败: {response.status}, {error_text}")
-                        error_message = f"生成失败: API请求返回 {response.status}"
-                        if callback:
-                            callback(error_message)
-                        return error_message
-                    
-                    # 处理流式响应
-                    async for line in response.content:
-                        line = line.decode('utf-8').strip()
-                        if line.startswith('data: ') and line != 'data: [DONE]':
-                            data_str = line[6:]  # 去掉 'data: ' 前缀
-                            try:
-                                import json
-                                data = json.loads(data_str)
-                                if 'choices' in data and data['choices'] and 'delta' in data['choices'][0]:
-                                    delta = data['choices'][0]['delta']
-                                    if 'content' in delta and delta['content']:
-                                        content = delta['content']
-                                        full_text += content
-                                        if callback:
-                                            callback(content)
-                            except Exception as e:
-                                self.logger.error(f"解析流式响应失败: {str(e)}")
-            
-            return full_text
-        
+            # Google Gemini API不支持流式输出，使用普通生成
+            result = await self.generate(prompt, system_prompt)
+
+            # 如果有回调函数，模拟流式输出
+            if callback and result:
+                # 将结果分块输出，模拟流式效果
+                chunk_size = 10  # 每次输出10个字符
+                for i in range(0, len(result), chunk_size):
+                    chunk = result[i:i+chunk_size]
+                    callback(chunk)
+                    await asyncio.sleep(0.05)  # 短暂延迟模拟流式效果
+
+            return result
+
         except Exception as e:
             self.logger.error(f"流式生成文本失败: {str(e)}")
             error_message = f"生成失败: {str(e)}"

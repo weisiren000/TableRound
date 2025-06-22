@@ -28,18 +28,21 @@ class ConsumerPrompts:
     # 消费者类型定义
     CONSUMER_TYPES = {
         "student": {
+            "name": "阿依古丽",
             "age": 23,
             "background": "学生",
             "characteristics": "少数民族，喜欢购买具有文化特色的手工艺品",
             "focus": ["文化价值", "价格敏感", "个性化", "教育意义"]
         },
         "freelancer": {
+            "name": "张小雅",
             "age": 27,
             "background": "自由职业者",
             "characteristics": "喜欢旅游，经常购买文化创意品",
             "focus": ["便携性", "纪念价值", "独特性", "品质"]
         },
         "young_professional": {
+            "name": "王晓萌",
             "age": 22,
             "background": "学生",
             "characteristics": "经常购买文化创意品",
@@ -154,7 +157,7 @@ class ConsumerPrompts:
         """
         if consumer_type in ConsumerPrompts.CONSUMER_TYPES:
             type_info = ConsumerPrompts.CONSUMER_TYPES[consumer_type]
-            return f"""你是一位{type_info['age']}岁的{type_info['background']}，{type_info['characteristics']}。
+            return f"""你是{type_info['name']}，一位{type_info['age']}岁的{type_info['background']}，{type_info['characteristics']}。
 你关注产品的{', '.join(type_info['focus'])}等方面。
 {ConsumerPrompts.ROLE_DESCRIPTION}"""
         return ConsumerPrompts.ROLE_DESCRIPTION

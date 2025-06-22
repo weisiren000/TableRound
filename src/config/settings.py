@@ -180,6 +180,10 @@ class Settings:
             from src.models import OpenRouterModel
             return OpenRouterModel(model_name=model_name, api_key=api_key, base_url=base_url)
 
+        elif provider.lower() == "github":
+            from src.models import GithubModel
+            return GithubModel(model_name=model_name, api_key=api_key, base_url=base_url)
+
         else:
             raise ValueError(f"不支持的提供商: {provider}")
 

@@ -44,9 +44,12 @@ class Designer(Agent):
         )
 
         # 设计师特定属性
-        self.age = kwargs.get("age", 23)  # 年龄：23岁
+        self.age = kwargs.get("age", 26)  # 年龄：26岁
         self.background = kwargs.get("background", "研究生")  # 人物介绍
-        self.experience = kwargs.get("experience", "有四年产品设计经验")  # 相关经历
+        self.experience = kwargs.get("experience", "有7年设计经验")  # 相关经历
+        # 如果没有指定名字，使用默认的固定名字
+        if name == "设计师1" or name.startswith("设计师"):
+            self.name = "林思雨"
         self.design_style = kwargs.get("design_style", "融合传统与现代")
         self.specialties = kwargs.get("specialties", ["视觉设计", "产品设计", "文创设计"])
         self.design_philosophy = kwargs.get("design_philosophy", "在尊重传统的基础上创新，追求美学与实用的平衡")
@@ -67,7 +70,7 @@ class Designer(Agent):
 
         from src.config.prompts.template_manager import PromptTemplates
         prompt = f"""
-        作为一名有四年经验的产品设计师，请基于以下关键词创建一个剪纸文创产品的设计概念：
+        作为一名有7年经验的产品设计师，请基于以下关键词创建一个剪纸文创产品的设计概念：
 
         关键词：{', '.join(keywords)}
 

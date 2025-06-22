@@ -509,7 +509,13 @@ class Agent:
         self.logger.info(f"智能体 {self.name} 正在提取关键词")
 
         from src.config.prompts.template_manager import PromptTemplates
-        prompt = PromptTemplates.get_keyword_extraction_prompt(content, topic)
+        # 使用设计要素导向的关键词提取
+        prompt = PromptTemplates.get_keyword_extraction_prompt(
+            content,
+            topic,
+            extraction_type="design_elements",
+            role=self.current_role
+        )
         system_prompt = PromptTemplates.get_system_prompt(self.current_role)
 
         response = await self.model.generate(prompt, system_prompt)
@@ -610,26 +616,13 @@ class Agent:
         # 生成故事
         story = await self.model.generate_with_image(prompt, system_prompt, image_path)
 
-        # 提取关键词
-        keywords_prompt = f"""
-        基于你刚才讲述的故事：
-
-        {story}
-
-        请提取5-10个关键词，这些关键词应该能够概括故事的核心元素和主题。
-
-        提取关键词时，请遵循以下原则：
-        1. 关键词应该是名词或短语，避免使用动词、形容词或完整句子
-        2. 关键词应该具有代表性，能够反映故事的核心概念
-        3. 关键词应该相互独立，避免语义重复
-        4. 关键词应该简洁明了，通常为1-3个词
-        5. 关键词应该与故事主题相关，能够帮助理解和分类内容
-
-        请确保提取的关键词数量在5-10个之间，不多不少。
-
-        请以JSON格式返回关键词列表，格式如下：
-        ["关键词1", "关键词2", "关键词3", ...]
-        """
+        # 使用设计要素导向的关键词提取
+        keywords_prompt = PromptTemplates.get_keyword_extraction_prompt(
+            story,
+            "图像故事设计要素",
+            extraction_type="design_elements",
+            role=self.current_role
+        )
 
         keywords_response = await self.model.generate(keywords_prompt, system_prompt)
 
@@ -707,26 +700,13 @@ class Agent:
         # 生成故事
         story = await self.model.generate(prompt, system_prompt)
 
-        # 提取关键词
-        keywords_prompt = f"""
-        基于你刚才讲述的故事：
-
-        {story}
-
-        请提取5-10个关键词，这些关键词应该能够概括故事的核心元素和主题。
-
-        提取关键词时，请遵循以下原则：
-        1. 关键词应该是名词或短语，避免使用动词、形容词或完整句子
-        2. 关键词应该具有代表性，能够反映故事的核心概念
-        3. 关键词应该相互独立，避免语义重复
-        4. 关键词应该简洁明了，通常为1-3个词
-        5. 关键词应该与故事主题相关，能够帮助理解和分类内容
-
-        请确保提取的关键词数量在5-10个之间，不多不少。
-
-        请以JSON格式返回关键词列表，格式如下：
-        ["关键词1", "关键词2", "关键词3", ...]
-        """
+        # 使用设计要素导向的关键词提取
+        keywords_prompt = PromptTemplates.get_keyword_extraction_prompt(
+            story,
+            "图像故事设计要素",
+            extraction_type="design_elements",
+            role=self.current_role
+        )
 
         keywords_response = await self.model.generate(keywords_prompt, system_prompt)
 
@@ -877,3 +857,75 @@ class Agent:
         )
 
         return design_card
+
+    async def intelligent_vote(self, candidate_keywords: List[str], discussion_content: str, max_votes: int = 5) -> List[str]:
+        """
+        智能投票：根据角色专业性和讨论内容选择关键词
+
+        Args:
+            candidate_keywords: 候选关键词列表
+            discussion_content: 讨论内容
+            max_votes: 最大投票数量
+
+        Returns:
+            选择的关键词列表
+        """
+        self.logger.info(f"智能体 {self.name} 正在进行智能投票")
+
+        # 如果候选关键词太少，直接全部选择
+        if len(candidate_keywords) <= max_votes:
+            return candidate_keywords
+
+        from src.config.prompts.template_manager import PromptTemplates
+
+        # 构建投票提示词
+        prompt = f"""
+        作为一名{self.current_role}，请根据以下讨论内容和你的专业判断，从候选关键词中选择最重要的{max_votes}个关键词进行投票。
+
+        讨论内容：
+        {discussion_content}
+
+        候选关键词：
+        {', '.join(candidate_keywords)}
+
+        请根据以下标准进行选择：
+        1. 与你的专业领域（{self.current_role}）最相关的关键词
+        2. 在讨论中被重点提及或强调的关键词
+        3. 对剪纸文创产品设计最有价值的关键词
+        4. 能体现传统文化与现代设计结合的关键词
+
+        请只返回选择的关键词，用逗号分隔，不要包含其他内容。
+        例如：关键词1, 关键词2, 关键词3
+        """
+
+        system_prompt = PromptTemplates.get_system_prompt(self.current_role)
+
+        try:
+            # 调用AI模型进行智能选择
+            response = await self.model.generate(prompt, system_prompt)
+
+            # 解析选择的关键词
+            selected_keywords = [kw.strip() for kw in response.split(',') if kw.strip()]
+
+            # 过滤掉不在候选列表中的关键词
+            valid_keywords = [kw for kw in selected_keywords if kw in candidate_keywords]
+
+            # 限制数量
+            final_keywords = valid_keywords[:max_votes]
+
+            # 如果选择的关键词太少，随机补充一些
+            if len(final_keywords) < max_votes and len(candidate_keywords) > len(final_keywords):
+                remaining_keywords = [kw for kw in candidate_keywords if kw not in final_keywords]
+                import random
+                additional_count = min(max_votes - len(final_keywords), len(remaining_keywords))
+                additional_keywords = random.sample(remaining_keywords, additional_count)
+                final_keywords.extend(additional_keywords)
+
+            self.logger.info(f"智能体 {self.name} 选择了 {len(final_keywords)} 个关键词进行投票")
+            return final_keywords
+
+        except Exception as e:
+            self.logger.error(f"智能投票失败: {str(e)}，使用随机投票作为备选")
+            # 如果AI投票失败，使用随机投票作为备选
+            import random
+            return random.sample(candidate_keywords, min(max_votes, len(candidate_keywords)))

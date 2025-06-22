@@ -45,7 +45,10 @@ class Craftsman(Agent):
         # 手工艺人特定属性
         self.age = kwargs.get("age", 60)  # 年龄：60岁
         self.background = kwargs.get("background", "蒙古族传统剪纸承人")  # 人物介绍
-        self.experience = kwargs.get("experience", "从事蒙古族剪纸技艺长达50年")  # 相关经历
+        self.experience = kwargs.get("experience", "从事蒙古族剪纸技艺长达40年")  # 相关经历
+        # 如果没有指定名字，使用默认的固定名字
+        if name == "手工艺人1" or name.startswith("手工艺人"):
+            self.name = "巴雅尔"
         self.crafts = kwargs.get("crafts", ["剪纸", "刺绣", "木雕", "陶艺"])
         self.specialties = kwargs.get("specialties", ["传统工艺", "文化传承", "手工制作"])
 

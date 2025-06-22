@@ -5,7 +5,7 @@ trash
 **/__pycache__
 docs
 fixtalk
-logs
+**/app.log
 todo
 tests
 todo
@@ -21,3 +21,4 @@ test_meeting_cleaner.py
 test_redis_clean_simple.py
 test_redis_only_architecture.py
 enhanced_ui_demo.py
+test_redis_clean.py
