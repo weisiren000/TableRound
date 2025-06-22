@@ -127,6 +127,45 @@ class KeywordExtractionPrompts:
     "neutral": ["中性关键词1", "中性关键词2", ...]
 }}
 """
+
+    # 设计要素导向关键词提取
+    DESIGN_ELEMENTS_EXTRACTION_PROMPT = """
+作为{role}，请分析以下内容并提取关键词：
+
+内容：
+{content}
+
+主题：{topic}
+
+提取策略：
+1. **首先判断内容性质**：
+   - 如果内容与设计、产品、工艺、文创等相关，则从设计要素角度提取关键词
+   - 如果内容是日常生活、一般性问题，则从内容本身的核心概念提取关键词
+
+2. **设计相关内容的提取维度**（仅当内容与设计相关时使用）：
+   🎨 纹样设计：传统图案、装饰元素、符号意义
+   🏗️ 造型设计：形态结构、比例关系、功能形式
+   🌈 色彩搭配：主色调、配色方案、视觉效果
+   🧱 材质特性：质感表现、工艺要求、物理特性
+   💡 功能性：实用价值、使用体验、创新功能
+   🎯 文化表达：文化内涵、传承价值、情感共鸣
+
+3. **一般内容的提取原则**：
+   - 提取内容的核心概念和关键信息
+   - 体现你作为{role}的专业视角和关注点
+   - 选择对讨论和分析有价值的关键词
+
+提取要求：
+- 提取5-10个最具代表性的关键词
+- 关键词应准确反映内容的核心要素
+- 体现你的角色专业特色和关注重点
+- 确保关键词对后续讨论有指导意义
+
+请以JSON格式返回关键词列表：
+["关键词1", "关键词2", "关键词3", ...]
+
+注意：请根据内容的实际情况选择合适的提取策略，不要强制使用设计要素框架。
+"""
     
     @staticmethod
     def get_basic_extraction_prompt(content: str, topic: str) -> str:
@@ -205,15 +244,34 @@ class KeywordExtractionPrompts:
     def get_sentiment_based_prompt(content: str, topic: str) -> str:
         """
         获取情感导向关键词提取提示词
-        
+
         Args:
             content: 要提取关键词的内容
             topic: 主题
-            
+
         Returns:
             格式化的情感导向关键词提取提示词
         """
         return KeywordExtractionPrompts.SENTIMENT_BASED_EXTRACTION_PROMPT.format(
             content=content,
             topic=topic
+        )
+
+    @staticmethod
+    def get_design_elements_prompt(content: str, topic: str, role: str) -> str:
+        """
+        获取设计要素导向关键词提取提示词
+
+        Args:
+            content: 要提取关键词的内容
+            topic: 主题
+            role: 角色名称
+
+        Returns:
+            格式化的设计要素导向关键词提取提示词
+        """
+        return KeywordExtractionPrompts.DESIGN_ELEMENTS_EXTRACTION_PROMPT.format(
+            content=content,
+            topic=topic,
+            role=role
         )

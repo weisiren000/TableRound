@@ -46,6 +46,9 @@ class Manufacturer(Agent):
         self.age = kwargs.get("age", 35)  # 年龄：35岁
         self.background = kwargs.get("background", "文化创意产品生产商")  # 人物介绍
         self.experience = kwargs.get("experience", "对文化创意产品的市场有相关了解，从事有四年手工艺品生产和开发的基础")  # 相关经历
+        # 如果没有指定名字，使用默认的固定名字
+        if name == "制造商人1" or name.startswith("制造商"):
+            self.name = "李志强"
         self.company_size = kwargs.get("company_size", "中型")  # 小型、中型、大型
         self.production_capacity = kwargs.get("production_capacity", 5000)  # 每月产能
         self.specialties = kwargs.get("specialties", ["文创产品", "工艺品", "纪念品"])

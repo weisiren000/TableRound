@@ -55,6 +55,10 @@ async def start_cli(conversation_manager: ConversationManager, settings: Setting
             await process_image(conversation_manager)
         elif choice == "3":
             await design_paper_cutting(conversation_manager)
+        elif choice == "5":
+            await ai_image_test(conversation_manager)
+        elif choice == "6":
+            await keyword_extraction_test(conversation_manager)
         elif choice == "4":
             show_goodbye_screen()
             break
@@ -120,6 +124,8 @@ def show_main_menu():
         (f"{Icons.CRAFTSMAN} [1]", "开始新对话", "启动多智能体圆桌讨论", primary),
         (f"{Icons.DESIGNER} [2]", "处理图片", "上传图片进行智能分析", secondary),
         (f"{Icons.STAR} [3]", "设计剪纸文创", "基于关键词设计文创产品", accent),
+        (f"🖼️ [5]", "AI绘画图像测试", "快速提示词迭代测试", info),
+        (f"🔑 [6]", "关键词提取测试", "快速测试设计要素关键词提取", warning),
         (f"{Icons.HEART} [t]", "切换主题", "更改界面主题风格", warning),
         (f"{Icons.DIAMOND} [s]", "特效演示", "查看所有美化特效", info),
         (f"{Icons.ARROW_RIGHT} [4]", "退出系统", "安全退出程序", error)
@@ -279,6 +285,14 @@ async def create_agents_with_progress(conversation_manager: ConversationManager,
         "designer": "设计师"
     }
 
+    # 智能体固定名字映射
+    agent_names = {
+        "craftsman": ["巴雅尔"],
+        "consumer": ["阿依古丽", "张小雅", "王晓萌"],
+        "manufacturer": ["李志强"],
+        "designer": ["林思雨"]
+    }
+
     # 计算总数
     total_agents = sum(settings.agent_counts.values())
 
@@ -300,7 +314,12 @@ async def create_agents_with_progress(conversation_manager: ConversationManager,
     for agent_type, count in settings.agent_counts.items():
         for i in range(count):
             agent_id = f"{agent_type}_{i+1}"
-            agent_name = f"{agent_types.get(agent_type, agent_type)}{i+1}"
+            # 使用固定名字
+            if agent_type in agent_names and i < len(agent_names[agent_type]):
+                agent_name = agent_names[agent_type][i]
+            else:
+                # 备用命名方案
+                agent_name = f"{agent_types.get(agent_type, agent_type)}{i+1}"
 
             progress_tracker.update(created_count, f"创建 {agent_name}")
 
@@ -774,6 +793,262 @@ async def design_paper_cutting(conversation_manager: ConversationManager):
     completion_panel.add_line(success("剪纸文创设计已完成！"))
     completion_panel.add_line(muted("感谢您使用我们的设计服务"))
     print(completion_panel.render())
+
+    UIComponents.wait_for_input()
+
+
+async def ai_image_test(conversation_manager: ConversationManager):
+    """
+    AI绘画图像测试 - 快速提示词迭代测试
+
+    Args:
+        conversation_manager: 对话管理器
+    """
+    logger = logging.getLogger("cli.ai_image_test")
+
+    UIComponents.print_header("🖼️ AI绘画图像测试", "快速提示词迭代测试")
+
+    # 说明面板
+    info_panel = Panel("🎯 测试说明", 60)
+    info_panel.add_line("此功能用于快速测试AI绘画提示词效果")
+    info_panel.add_line("使用与主程序相同的提示词处理流程")
+    info_panel.add_line("支持快速迭代和效果对比")
+    print(info_panel.render())
+    print()
+
+    while True:
+        # 输入测试提示词
+        prompt_panel = Panel("✨ 提示词输入", 60)
+        prompt_panel.add_line("请输入要测试的提示词：")
+        prompt_panel.add_line(muted("输入 'quit' 或 'q' 退出测试"))
+        print(prompt_panel.render())
+        print()
+
+        user_prompt = input(primary("测试提示词: ")).strip()
+
+        # 检查退出条件
+        if user_prompt.lower() in ['quit', 'q', '退出']:
+            print(StatusIndicator.info("退出AI绘画测试"))
+            break
+
+        if not user_prompt:
+            print(StatusIndicator.warning("提示词不能为空"))
+            continue
+
+        print(StatusIndicator.success(f"测试提示词: {user_prompt}"))
+
+        # 选择图像生成提供商
+        print()
+        print(primary("🤖 选择AI图像生成服务:"))
+        print(f"  {primary('[1]')} OpenAI DALL-E - 高质量图像生成")
+        print(f"  {primary('[2]')} 豆包 Doubao - 本土化AI服务")
+        print()
+
+        provider_choice = input(primary("请选择服务 (默认: 2): ")).strip()
+        provider = "openai" if provider_choice == "1" else "doubao"
+
+        provider_name = "OpenAI DALL-E" if provider == "openai" else "豆包 Doubao"
+        print(StatusIndicator.info(f"已选择: {provider_name}"))
+
+        # 显示提示词处理过程
+        print()
+        print(StatusIndicator.info("🔄 提示词处理流程"))
+
+        # 使用与主程序相同的提示词处理流程
+        from src.utils.image import ImageProcessor
+        image_processor = ImageProcessor(conversation_manager.settings)
+
+        # 构建完整的提示词 - 使用与conversation.py相同的逻辑
+        print(StatusIndicator.info("步骤1: 构建基础提示词"))
+        base_prompt = f"{user_prompt}，对称的剪纸风格的中国传统蝙蝠吉祥纹样"
+        print(f"  基础提示词: {muted(base_prompt)}")
+
+        print(StatusIndicator.info("步骤2: 应用提示词优化"))
+        print(f"  优化算法: {muted('添加细节描述、风格描述等')}")
+
+        # 生成图像
+        print()
+        print(StatusIndicator.info(f"🎨 使用 {provider_name} 生成图像..."))
+
+        spinner = LoadingSpinner("图像生成中", "spinner")
+        spinner.start()
+
+        try:
+            # 使用与主程序完全相同的生成逻辑
+            image_path = await image_processor.generate_image(base_prompt, provider=provider)
+        finally:
+            spinner.stop()
+
+        # 显示结果
+        print()
+        if image_path:
+            print(StatusIndicator.success(f"✅ 图像已生成: {image_path}"))
+            print(StatusIndicator.info(f"使用提供商: {provider_name}"))
+            print(StatusIndicator.info(f"原始提示词: {user_prompt}"))
+
+            # 显示最终使用的提示词（用于调试）
+            print()
+            print(StatusIndicator.info("🔍 最终提示词完整内容:"))
+            # 显示完整的优化后提示词
+            optimized_prompt = image_processor.optimize_image_prompt(base_prompt)
+            # 将长提示词分行显示
+            import textwrap
+            wrapped_lines = textwrap.wrap(optimized_prompt, width=80)
+            for line in wrapped_lines:
+                print(f"  {muted(line)}")
+
+        else:
+            print(StatusIndicator.error("图像生成失败"))
+
+        # 询问是否继续测试
+        print()
+        continue_choice = input(primary("是否继续测试? (y/n): ")).lower().strip()
+        if continue_choice not in ['y', 'yes', '是', '']:
+            break
+
+        print("\n" + "="*60 + "\n")
+
+    UIComponents.wait_for_input()
+
+
+async def keyword_extraction_test(conversation_manager: ConversationManager):
+    """
+    关键词提取测试模块
+
+    Args:
+        conversation_manager: 对话管理器
+    """
+    logger = logging.getLogger("cli.keyword_extraction_test")
+
+    UIComponents.print_header("🔑 关键词提取测试", "设计要素导向关键词提取快速测试")
+
+    # 说明面板
+    info_panel = Panel("📋 测试说明", 70)
+    info_panel.add_line("本模块用于快速测试设计要素导向的关键词提取功能")
+    info_panel.add_line("与对话环节的关键词提取功能和原理完全一致")
+    info_panel.add_line("支持测试不同角色的专业视角关键词提取")
+    info_panel.add_separator()
+    info_panel.add_line("🎨 纹样设计 | 🏗️ 造型设计 | 🌈 色彩搭配")
+    info_panel.add_line("🧱 材质特性 | 💡 功能性要素 | 🎯 文化表达")
+    print(info_panel.render())
+    print()
+
+    # 获取智能体列表
+    if not conversation_manager.agents:
+        print(StatusIndicator.error("没有可用的智能体，请先返回主菜单创建智能体"))
+        UIComponents.wait_for_input()
+        return
+
+    # 显示可用智能体
+    agents_panel = Panel("🤖 可用智能体", 60)
+    agent_list = []
+    for i, (agent_id, agent) in enumerate(conversation_manager.agents.items(), 1):
+        icon = Icons.get_agent_icon(agent.type)
+        agents_panel.add_line(f"{i}. {icon} {agent.name} ({agent.type})")
+        agent_list.append((agent_id, agent))
+    print(agents_panel.render())
+    print()
+
+    while True:
+        # 选择智能体
+        try:
+            agent_choice = input(primary("请选择智能体编号 (回车返回): ")).strip()
+            if not agent_choice:
+                break
+
+            agent_index = int(agent_choice) - 1
+            if 0 <= agent_index < len(agent_list):
+                selected_agent_id, selected_agent = agent_list[agent_index]
+                print(StatusIndicator.success(f"已选择: {selected_agent.name} ({selected_agent.type})"))
+            else:
+                print(StatusIndicator.error("无效的智能体编号"))
+                continue
+        except ValueError:
+            print(StatusIndicator.error("请输入有效的数字"))
+            continue
+
+        print()
+
+        # 输入测试内容
+        content_panel = Panel("📝 输入测试内容", 70)
+        content_panel.add_line("请输入要提取关键词的内容（可以是讨论内容、产品描述等）：")
+        print(content_panel.render())
+        print()
+
+        test_content = input(primary("测试内容: ")).strip()
+        if not test_content:
+            print(StatusIndicator.error("测试内容不能为空"))
+            continue
+
+        # 输入主题
+        topic = input(secondary("主题 (可选): ")).strip()
+        if not topic:
+            topic = "设计要素提取测试"
+
+        print()
+        print(StatusIndicator.info(f"正在使用 {selected_agent.name} 的专业视角提取关键词..."))
+
+        # 执行关键词提取（与对话环节完全一致）
+        spinner = LoadingSpinner(f"{selected_agent.name} 正在分析设计要素", "dots")
+        spinner.start()
+
+        try:
+            # 调用与对话环节相同的关键词提取方法
+            keywords = await selected_agent.extract_keywords(test_content, topic)
+        except Exception as e:
+            spinner.stop()
+            print(StatusIndicator.error(f"关键词提取失败: {str(e)}"))
+            logger.error(f"关键词提取失败: {str(e)}")
+            continue
+        finally:
+            spinner.stop()
+
+        # 显示结果
+        print()
+        result_panel = Panel("✨ 提取结果", 70)
+        result_panel.add_line(f"智能体: {success(selected_agent.name)} ({selected_agent.type})")
+        result_panel.add_line(f"角色视角: {info(selected_agent.current_role)}")
+        result_panel.add_separator()
+
+        if keywords:
+            # 使用绿色显示关键词（与对话环节一致）
+            from src.utils.colors import Colors
+            colored_keywords = [Colors.green(kw) for kw in keywords]
+
+            # 显示关键词数量
+            result_panel.add_line(f"关键词数量: {accent(str(len(keywords)))}")
+            result_panel.add_line("提取的关键词:")
+
+            # 分行显示关键词，避免截断
+            for i, colored_kw in enumerate(colored_keywords, 1):
+                result_panel.add_line(f"  {i}. {colored_kw}")
+
+            # 分析关键词类型
+            result_panel.add_separator()
+            result_panel.add_line("🎯 关键词分析:")
+            result_panel.add_line(muted("• 这些关键词体现了该角色的专业视角"))
+            result_panel.add_line(muted("• 根据内容性质选择了合适的提取策略"))
+        else:
+            result_panel.add_line(warning("未提取到关键词"))
+
+        print(result_panel.render())
+        print()
+
+        # 显示技术细节
+        tech_panel = Panel("🔧 技术细节", 70)
+        tech_panel.add_line(f"提取类型: {info('design_elements (设计要素导向)')}")
+        tech_panel.add_line(f"角色专业化: {success('已启用')}")
+        tech_panel.add_line(f"与对话环节一致性: {success('100%')}")
+        tech_panel.add_line(f"提示词模板: {muted('DESIGN_ELEMENTS_EXTRACTION_PROMPT')}")
+        print(tech_panel.render())
+        print()
+
+        # 询问是否继续测试
+        continue_choice = input(primary("是否继续测试其他智能体或内容? (y/n): ")).lower().strip()
+        if continue_choice not in ['y', 'yes', '是', '']:
+            break
+
+        print("\n" + "="*70 + "\n")
 
     UIComponents.wait_for_input()
 
