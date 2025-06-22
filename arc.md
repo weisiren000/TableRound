@@ -15,8 +15,6 @@ src/
 │   ├── craftsman.py          # 手工艺人智能体
 │   ├── designer.py           # 设计师智能体
 │   └── manufacturer.py       # 制造商智能体
-├── api/                      # API接口模块
-│   └── __init__.py
 ├── config/                   # 配置模块
 │   ├── __init__.py
 │   ├── models.py            # 模型配置
@@ -38,7 +36,6 @@ src/
 │   │   ├── README.md        # 提示词说明文档
 │   │   ├── template_manager.py # 模板管理器
 │   │   └── test_prompts.py  # 提示词测试
-│   ├── prompts.py           # 提示词主模块
 │   ├── redis_config.py      # Redis配置
 │   └── settings.py          # 系统设置
 ├── core/                    # 核心功能模块
@@ -48,7 +45,7 @@ src/
 │   ├── global_memory.py    # 全局记忆管理
 │   ├── god_view.py         # 上帝视角
 │   ├── kj_method.py        # KJ法实现
-│   ├── memory.py           # 记忆系统基类
+│   ├── meeting_cleaner.py  # 会议清理模块
 │   ├── memory_adapter.py   # 记忆适配器
 │   └── redis_memory.py     # Redis记忆实现
 ├── models/                 # AI模型接口层
@@ -57,8 +54,8 @@ src/
 │   ├── base.py            # 模型基类
 │   ├── deepseek.py        # DeepSeek模型
 │   ├── doubao.py          # 豆包模型 (图像生成)
+│   ├── github.py          # GitHub模型
 │   ├── google.py          # Google模型
-│   ├── mock.py            # 模拟模型
 │   ├── openai.py          # OpenAI模型
 │   └── openrouter.py      # OpenRouter模型 (两阶段AI架构)
 ├── ui_enhanced/           # UI美化模块 ✨
@@ -180,6 +177,7 @@ async def process_image(self, image_path: str):
 - **conversation.py**: 对话管理器，实现统一图像描述机制
 - **agent.py**: 智能体基类，支持图像描述和角色转换
 - **global_memory.py**: 全局记忆管理，Redis分布式存储
+- **meeting_cleaner.py**: 会议清理模块，Redis数据清理和备份
 - **memory_adapter.py**: 记忆适配器，Redis统一存储接口 ⭐
 - **redis_memory.py**: Redis记忆模块（已优化）- 支持缓存、批量操作、安全处理
 
@@ -188,6 +186,7 @@ async def process_image(self, image_path: str):
   - 视觉模型: `google/gemini-2.0-flash-exp:free`
   - 对话模型: `deepseek/deepseek-r1-0528:free`
 - **doubao.py**: 豆包API集成，专用于图像生成
+- **github.py**: GitHub模型集成
 - **base.py**: 统一模型接口，支持视觉和对话能力
 
 ### 4. UI美化模块 (ui_enhanced/) 🎨 新增
@@ -433,7 +432,7 @@ MODEL_REGISTRY = {
 - ✅ **清理日志完善**: 启动对话时显示详细的Redis清理过程和结果
 - ✅ **功能验证**: 确保每次会议开始时Redis数据被正确清理
 
-### v2.1 (2025-06-09)
+### v1.0.2 (2025-06-09)
 - ✅ **统一图像描述机制**: 避免重复调用视觉模型
 - ✅ **两阶段AI架构**: 视觉理解 + 对话生成
 - ✅ **Google Gemini集成**: 强大的视觉理解能力
@@ -471,12 +470,14 @@ MODEL_REGISTRY = {
 - 🚀 **两阶段AI**: 实现视觉理解+对话生成架构
 - 🖼️ **图像优化**: 统一图像描述机制
 - 📈 **性能提升**: 减少API调用，优化用户体验
+- 🏷️ **版本发布**: 发布v1.0.2版本
 
 #### 第五阶段：功能修复 (2025年6月22日)
 - 🔧 **Redis清理修复**: 解决启动对话时Redis自动清理功能失效问题
 - 🛠️ **环境变量优化**: 修复带注释的环境变量解析错误
 - 📊 **日志完善**: 增强Redis清理过程的日志输出和用户反馈
 - ✅ **功能验证**: 确保会议记忆管理功能正常工作
+- 🏷️ **版本发布**: 发布v1.0.3版本
 
 ### 核心技术成就 🏆
 
@@ -523,11 +524,11 @@ MODEL_REGISTRY = {
 
 ### 项目里程碑 🎯
 
-- 📅 **2025-05-21**: 项目启动，基础架构设计
-- 📅 **2025-06-03**: 前端界面完成，API集成
+- 📅 **2025-05-21**: 项目启动，基础架构设计 (v1.0.0)
+- 📅 **2025-06-03**: 前端界面完成，API集成 (v1.0.1)
 - 📅 **2025-06-08**: 代码重构，性能优化
-- 📅 **2025-06-09**: 两阶段AI架构，统一图像描述
-- 📅 **2025-06-22**: Redis清理功能修复，环境变量解析优化
+- 📅 **2025-06-09**: 两阶段AI架构，统一图像描述 (v1.0.2)
+- 📅 **2025-06-22**: Redis清理功能修复，环境变量解析优化 (v1.0.3)
 
 ### 文档记录 📚
 
