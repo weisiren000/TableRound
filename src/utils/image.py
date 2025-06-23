@@ -66,10 +66,10 @@ class ImageProcessor:
             优化后的提示词
         """
         # 基础提示词，确保生成的图像符合要求
-        base_prompt = "对称的剪纸风格的中国传统蝙蝠吉祥纹样，"
+        base_prompt = "对称的剪纸风格的中国传统蝴蝶吉祥纹样，"
 
         # 添加细节描述
-        details = "精细的剪纸纹理，传统中国红色调，对称构图，"
+        details = "精细的剪纸纹理，对称构图，"
 
         # 添加风格描述
         style = "中国传统民间艺术风格，平面设计，简洁清晰的线条，"
@@ -79,7 +79,7 @@ class ImageProcessor:
 
         return optimized_prompt
 
-    async def generate_image(self, prompt: str, size: str = "1024x1024", provider: str = None) -> Optional[str]:
+    async def generate_image(self, prompt: str, size: str = "1024x1024", provider: str = None) -> Optional[List[str]]:
         """
         生成图像
 
@@ -108,7 +108,7 @@ class ImageProcessor:
             self.logger.error(f"生成图像失败: {str(e)}")
             return None
 
-    async def _generate_image_openai(self, prompt: str, size: str = "1024x1024") -> Optional[str]:
+    async def _generate_image_openai(self, prompt: str, size: str = "1024x1024") -> Optional[List[str]]:
         """
         使用OpenAI生成图像
 
@@ -134,31 +134,37 @@ class ImageProcessor:
                 prompt=prompt,
                 size=size,
                 quality="standard",
-                n=1,
+                n=4,
             )
 
-            # 获取图像URL
-            image_url = response.data[0].url
-
-            # 下载图像
-            image_data = requests.get(image_url).content
-
-            # 生成文件名
+            # 处理多张图像
+            image_paths = []
             timestamp = int(time.time())
-            file_name = f"design_{timestamp}.png"
-            file_path = os.path.join(self.settings.IMAGE_DIR, file_name)
 
-            # 保存图像
-            with open(file_path, "wb") as f:
-                f.write(image_data)
+            for i, image_data in enumerate(response.data):
+                # 获取图像URL
+                image_url = image_data.url
 
-            return file_path
+                # 下载图像
+                image_content = requests.get(image_url).content
+
+                # 生成文件名
+                file_name = f"design_{timestamp}_{i+1}.png"
+                file_path = os.path.join(self.settings.IMAGE_DIR, file_name)
+
+                # 保存图像
+                with open(file_path, "wb") as f:
+                    f.write(image_content)
+
+                image_paths.append(file_path)
+
+            return image_paths
 
         except Exception as e:
             self.logger.error(f"OpenAI图像生成失败: {str(e)}")
             return None
 
-    async def _generate_image_doubao(self, prompt: str, size: str = "1024x1024") -> Optional[str]:
+    async def _generate_image_doubao(self, prompt: str, size: str = "1024x1024") -> Optional[List[str]]:
         """
         使用豆包API生成图像
 
@@ -178,29 +184,42 @@ class ImageProcessor:
                 base_url=self.settings.get_base_url("doubao")
             )
 
-            # 调用图像生成API，设置watermark=False
-            image_urls = await model.generate_image(prompt, size, watermark=False)
+            # 调用图像生成API，设置watermark=False，生成4张图像
+            image_urls = await model.generate_image(prompt, size, n=4, watermark=False)
 
-            if not image_urls or not image_urls[0] or image_urls[0].startswith("生成失败"):
+            if not image_urls or len(image_urls) == 0:
                 self.logger.error(f"豆包API生成图像失败: {image_urls}")
                 return None
 
-            # 获取图像URL
-            image_url = image_urls[0]
+            # 检查是否有失败的图像
+            valid_urls = [url for url in image_urls if not url.startswith("生成失败")]
+            if not valid_urls:
+                self.logger.error(f"豆包API生成的所有图像都失败: {image_urls}")
+                return None
 
-            # 下载图像
-            image_data = requests.get(image_url).content
-
-            # 生成文件名
+            # 处理多张图像
+            image_paths = []
             timestamp = int(time.time())
-            file_name = f"design_{timestamp}.png"
-            file_path = os.path.join(self.settings.IMAGE_DIR, file_name)
 
-            # 保存图像
-            with open(file_path, "wb") as f:
-                f.write(image_data)
+            for i, image_url in enumerate(valid_urls):
+                try:
+                    # 下载图像
+                    image_data = requests.get(image_url).content
 
-            return file_path
+                    # 生成文件名
+                    file_name = f"design_{timestamp}_{i+1}.png"
+                    file_path = os.path.join(self.settings.IMAGE_DIR, file_name)
+
+                    # 保存图像
+                    with open(file_path, "wb") as f:
+                        f.write(image_data)
+
+                    image_paths.append(file_path)
+                except Exception as e:
+                    self.logger.warning(f"下载第{i+1}张图像失败: {str(e)}")
+                    continue
+
+            return image_paths if image_paths else None
 
         except Exception as e:
             self.logger.error(f"图像生成失败: {str(e)}")

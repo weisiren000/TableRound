@@ -180,28 +180,33 @@ class ConversationManager:
         self.stage = "introduction"
         self.discussion_history = []
 
-        # 如果提供了图片，先处理图片
+        # 设置图像路径（如果提供）
         self.reference_image = image_path
         self.image_keywords = []
 
+        # 智能体自我介绍（先进行自我介绍）
+        await self.global_memory.update_stage("introduction")
+        await self.introduce_agents()
+
+        # 如果提供了图片，在自我介绍后处理图片
         if image_path:
             self.logger.info(f"使用参考图片: {image_path}")
             await self.stream_handler.stream_output(f"\n===== 使用参考图片 =====\n")
             await self.stream_handler.stream_output(f"图片路径: {image_path}\n\n")
 
-            # 提取图片关键词
-            self.image_keywords = await self.process_image(image_path)
+            try:
+                # 提取图片关键词
+                self.image_keywords = await self.process_image(image_path)
 
-            # 将图片关键词添加到讨论历史
-            self.discussion_history.append({
-                "stage": "image_reference",
-                "image_path": image_path,
-                "keywords": self.image_keywords
-            })
-
-        # 智能体自我介绍
-        await self.global_memory.update_stage("introduction")
-        await self.introduce_agents()
+                # 将图片关键词添加到讨论历史
+                self.discussion_history.append({
+                    "stage": "image_reference",
+                    "image_path": image_path,
+                    "keywords": self.image_keywords
+                })
+            except Exception as e:
+                self.logger.error(f"图像处理失败: {str(e)}")
+                await self.stream_handler.stream_output(f"\n图像处理失败: {str(e)}\n但仍将继续讨论\n\n")
 
         # 开始讨论
         self.stage = "discussion"
@@ -256,14 +261,13 @@ class ConversationManager:
             })
 
     async def start_discussion(self) -> None:
-        """开始讨论"""
+        """开始讨论（增强图像关联）"""
         self.logger.info(f"开始讨论，主题: {self.topic}")
-
+        
         # 使用美化的讨论标题
         await self.stream_handler.stream_enhanced_output("", "discussion_header")
-
+        
         # 获取所有智能体并按特定顺序排列
-        # 对话顺序：手工艺人、消费者、制造商人、消费者、设计师、消费者
         agents = []
 
         # 获取各类型智能体
@@ -291,17 +295,23 @@ class ConversationManager:
             # 如果消费者不足，使用所有智能体并随机排序
             agents = list(self.agents.values())
             random.shuffle(agents)
-
+        
         # 讨论轮数
-        max_turns = self.settings.max_turns  # 使用配置中的轮数
-
+        max_turns = self.settings.max_turns
+        
         for turn in range(max_turns):
             self.logger.info(f"讨论轮次: {turn + 1}/{max_turns}")
             await self.stream_handler.stream_output(f"\n----- 讨论轮次 {turn + 1}/{max_turns} -----\n")
-
+            
             # 获取上下文
             if turn == 0:
+                # 第一轮讨论，结合图像信息（如果有）
                 context = f"讨论主题: {self.topic}"
+                
+                # 如果有图像参考，添加图像相关信息
+                if hasattr(self, 'reference_image') and self.reference_image and hasattr(self, 'image_keywords') and self.image_keywords:
+                    context += f"\n\n参考图像关键词: {', '.join(self.image_keywords)}\n\n"
+                    context += "请在讨论中自然地融入图像中的元素和灵感。"
             else:
                 # 获取上一轮的讨论内容
                 prev_turn_discussions = [
@@ -310,25 +320,47 @@ class ConversationManager:
                     if item['stage'] == f"discussion_turn_{turn}"
                 ]
                 context = "\n".join(prev_turn_discussions)
-
+            
             # 每个智能体发言
             for agent in agents:
                 # 设置当前智能体信息
                 self.stream_handler.set_current_agent(agent.name, agent.type)
-
+                
                 # 启动加载动画
                 from src.ui_enhanced.animations import LoadingSpinner
                 spinner = LoadingSpinner(f"{agent.name} 正在思考", "spinner")
                 spinner.start()
-
+                
                 try:
-                    response = await agent.discuss(self.topic, context)
+                    # 增强的讨论提示，确保图像关联
+                    discussion_prompt = context
+                    
+                    if turn == 0 and hasattr(self, 'reference_image') and self.reference_image:
+                        # 为首轮讨论添加图像关联提示
+                        try:
+                            # 使用异步方法获取记忆
+                            image_stories = await agent.memory.get_memories_by_type("image_story")
+                            if image_stories and len(image_stories) > 0:
+                                # 从最新的故事中提取内容
+                                story_text = image_stories[0]
+                                if story_text:
+                                    # 提取前200个字符作为提示
+                                    story_preview = story_text[:200]
+                                    discussion_prompt += f"\n\n你之前基于图像创作的故事:\n{story_preview}...\n\n请在讨论中自然地融入你从图像获得的灵感和想法。"
+                        except Exception as e:
+                            self.logger.warning(f"获取图像故事记忆失败: {str(e)}")
+                            # 继续执行，即使没有图像故事
+                    
+                    response = await agent.discuss(self.topic, discussion_prompt)
+                except Exception as e:
+                    self.logger.error(f"智能体 {agent.name} 讨论失败: {str(e)}")
+                    response = f"(由于技术原因无法提供有效回应，将继续讨论)"
                 finally:
                     spinner.stop()
-
+                
                 # 使用美化的讨论输出
                 await self.stream_handler.stream_enhanced_output(response, "agent_discussion")
-
+                
                 # 添加到讨论历史
                 self.discussion_history.append({
                     "stage": f"discussion_turn_{turn + 1}",
@@ -337,38 +369,52 @@ class ConversationManager:
                 })
 
     async def extract_keywords(self) -> None:
-        """提取关键词"""
+        """提取关键词（增强图像关联）"""
         self.logger.info("提取关键词")
         await self.stream_handler.stream_output("\n===== 提取关键词 =====\n")
-
+        
         # 获取讨论内容
         discussion_content = "\n".join([
             f"{item['agent']}: {item['content']}"
             for item in self.discussion_history
             if item['stage'].startswith("discussion_turn_")
         ])
-
+        
         # 导入颜色支持
         from src.utils.colors import Colors
-
+        
+        # 准备图像相关上下文
+        image_context = ""
+        if hasattr(self, 'image_keywords') and self.image_keywords:
+            image_context = f"参考图像关键词: {', '.join(self.image_keywords)}\n\n"
+        
         # 每个智能体提取关键词
         for agent in self.agents.values():
             # 启动加载动画
             from src.ui_enhanced.animations import LoadingSpinner
             spinner = LoadingSpinner(f"{agent.name} 正在提取关键词", "dots")
             spinner.start()
-
+            
             try:
-                keywords = await agent.extract_keywords(discussion_content, self.topic)
+                # 构建增强的关键词提取上下文
+                enhanced_context = discussion_content
+                if image_context:
+                    enhanced_prompt = f"{self.topic}\n\n{image_context}讨论内容:\n{discussion_content}"
+                    keywords = await agent.extract_keywords(enhanced_prompt, self.topic)
+                else:
+                    keywords = await agent.extract_keywords(discussion_content, self.topic)
+            except Exception as e:
+                self.logger.error(f"关键词提取失败: {str(e)}")
+                keywords = ["提取失败"]
             finally:
                 spinner.stop()
-
+            
             # 使用绿色显示关键词
             colored_keywords = [Colors.green(kw) for kw in keywords]
             keywords_str = ", ".join(colored_keywords)
-
+            
             await self.stream_handler.stream_output(f"【{agent.name}】提取的关键词:\n{keywords_str}\n\n")
-
+            
             # 添加到讨论历史
             self.discussion_history.append({
                 "stage": "keywords",
@@ -641,7 +687,7 @@ class ConversationManager:
         # 保存关键词供后续使用
         self.design_keywords = unique_keywords
 
-    async def process_user_input(self, user_input: str) -> None:
+    async def process_user_input(self, user_input: str) -> Optional[List[str]]:
         """
         处理用户输入，生成图像
 
@@ -651,8 +697,8 @@ class ConversationManager:
         self.logger.info(f"处理用户输入: {user_input}")
 
         if not user_input.strip():
-            await self.stream_handler.stream_output("未输入设计提示词，使用默认提示词: 传统中国红色调，对称蝙蝠图案，吉祥如意\n")
-            user_input = "传统中国红色调，对称蝙蝠图案，吉祥如意"
+            await self.stream_handler.stream_output("未输入设计提示词，使用默认提示词: 传统中国红色调，对称蝴蝶图案，吉祥如意\n")
+            user_input = "传统中国红色调，对称蝴蝶图案，吉祥如意"
 
         # 合并用户输入和之前的关键词
         combined_keywords = self.design_keywords.copy()
@@ -670,13 +716,15 @@ class ConversationManager:
         await self.stream_handler.stream_output("\n正在使用豆包API生成图像...\n")
 
         # 构建完整的提示词 - 用户输入前置以提高权重
-        prompt = f"{user_input}，对称的剪纸风格的中国传统蝙蝠吉祥纹样"
+        prompt = f"{user_input}，对称的剪纸风格的中国传统蝴蝶吉祥纹样"
 
         # 生成图像
-        image_path = await image_processor.generate_image(prompt, provider="doubao")
+        image_paths = await image_processor.generate_image(prompt, provider="doubao")
 
-        if image_path:
-            await self.stream_handler.stream_output(f"\n图像已生成: {image_path}\n")
+        if image_paths:
+            await self.stream_handler.stream_output(f"\n成功生成 {len(image_paths)} 张图像:\n")
+            for i, path in enumerate(image_paths, 1):
+                await self.stream_handler.stream_output(f"  图像 {i}: {path}\n")
         else:
             await self.stream_handler.stream_output("\n图像生成失败\n")
 
@@ -684,71 +732,66 @@ class ConversationManager:
         self.stage = "end"
         await self.stream_handler.stream_output("\n===== 对话结束 =====\n")
 
-        return image_path
+        return image_paths
 
     async def process_image(self, image_path: str) -> List[str]:
         """
-        处理图片
-
+        处理图片（优化版 - 无需单独的视觉模型）
+        
         Args:
             image_path: 图片路径
-
+            
         Returns:
             提取的关键词列表
         """
         self.logger.info(f"处理图片: {image_path}")
         await self.stream_handler.stream_output("\n===== 处理图片 =====\n")
-
-        # 第一步：统一进行图像描述
-        await self.stream_handler.stream_output("正在分析图像内容...\n\n")
-        image_description = await self._describe_image_once(image_path)
-
-        # 展示图像描述给用户
-        await self.stream_handler.stream_output("===== 图像描述 =====\n")
-        await self.stream_handler.stream_output(f"{image_description}\n\n")
-
-        # 保存图像描述供智能体使用
-        self.image_description = image_description
-
+        
+        # 存储图像路径供智能体使用
+        self.reference_image = image_path
+        await self.stream_handler.stream_output(f"参考图像路径: {image_path}\n\n")
+        
         # 导入颜色支持
         from src.utils.colors import Colors
-
+        
         # 所有关键词
         all_keywords = []
-
-        # 第二步：每个智能体基于图像描述讲故事并提取关键词
-        await self.stream_handler.stream_output("===== 智能体故事创作 =====\n")
+        
+        # 每个智能体基于图像创建故事并提取关键词
+        # (在自我介绍之后进行图像故事创作)
+        await self.stream_handler.stream_output("===== 基于图像的故事创作 =====\n")
         for agent in self.agents.values():
             # 启动加载动画
             from src.ui_enhanced.animations import LoadingSpinner
             spinner = LoadingSpinner(f"{agent.name} 正在创作故事", "blocks")
             spinner.start()
-
+            
             try:
-                story, keywords = await agent.tell_story_from_description(image_description, image_path)
+                # 直接使用tell_story_from_image方法
+                story, keywords = await agent.tell_story_from_image(image_path)
             finally:
                 spinner.stop()
-
+                
             # 使用绿色显示关键词
             colored_keywords = [Colors.green(kw) for kw in keywords]
             keywords_str = ", ".join(colored_keywords)
-
+            
             await self.stream_handler.stream_output(f"【{agent.name}】的故事:\n{story}\n\n关键词: {keywords_str}\n\n")
             all_keywords.extend(keywords)
-
+            
         # 去重
         unique_keywords = list(set(all_keywords))
-
+        
         # 如果关键词太多，随机选择一部分
         if len(unique_keywords) > self.settings.max_keywords:
             selected_keywords = random.sample(unique_keywords, self.settings.max_keywords)
         else:
             selected_keywords = unique_keywords
-
+            
         # 使用绿色显示最终选择的关键词
         colored_selected_keywords = [Colors.green(kw) for kw in selected_keywords]
         selected_keywords_str = ", ".join(colored_selected_keywords)
-
+        
         await self.stream_handler.stream_output(f"\n提取的关键词: {selected_keywords_str}\n")
         return selected_keywords
 
@@ -796,34 +839,7 @@ class ConversationManager:
 
         return merged
 
-    async def _describe_image_once(self, image_path: str) -> str:
-        """
-        统一进行图像描述（只调用一次视觉模型）
-
-        Args:
-            image_path: 图像路径
-
-        Returns:
-            图像描述
-        """
-        # 获取第一个智能体的模型来进行图像描述
-        first_agent = next(iter(self.agents.values()))
-
-        # 检查模型是否支持图像
-        if not first_agent.model.supports_vision():
-            return "该模型不支持图像处理，无法描述图像内容。"
-
-        # 使用专门的图像描述提示词（英文以确保视觉模型理解准确）
-        prompt = "Please provide a detailed description of this image, including main elements, colors, composition, style, and atmosphere. Use vivid language to describe it so that someone who hasn't seen the image can imagine the scene."
-        system_prompt = "You are a professional image analyst who excels at describing image content with vivid and detailed language."
-
-        try:
-            # 调用模型进行图像描述
-            description = await first_agent.model.generate_with_image(prompt, system_prompt, image_path)
-            return description
-        except Exception as e:
-            self.logger.error(f"图像描述失败: {str(e)}")
-            return f"图像描述失败: {str(e)}"
+    # 移除了_describe_image_once方法，该方法不再需要
 
     async def _process_role_switch(self, original_role: str, new_role: str, topic: str) -> str:
         """
