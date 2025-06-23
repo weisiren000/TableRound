@@ -10,12 +10,101 @@ import logging
 import os
 import asyncio
 from typing import Optional, Dict, Any, List, Callable
+import json
+import time
+import re
+import importlib
+from datetime import datetime, timedelta
+from collections import deque
 
 import requests
 
+# 确保aiohttp可用
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None
+
 from src.models.base import BaseModel
 
-# 移除新SDK的导入，只使用传统API调用
+# 速率限制器类
+class RateLimiter:
+    """速率限制器，控制API请求频率"""
+    
+    def __init__(self, rpm_limit: int = 15, tpm_limit: int = 250000):
+        """
+        初始化速率限制器
+        
+        Args:
+            rpm_limit: 每分钟请求数限制
+            tpm_limit: 每分钟令牌数限制
+        """
+        self.rpm_limit = rpm_limit
+        self.tpm_limit = tpm_limit
+        
+        # 请求时间窗口（保存最近1分钟的请求时间）
+        self.request_times = deque(maxlen=rpm_limit)
+        
+        # 令牌使用窗口（保存最近1分钟的令牌使用量）
+        self.token_usage = deque(maxlen=100)  # 最多记录100条令牌使用记录
+        
+        # 日志
+        self.logger = logging.getLogger("rate_limiter")
+    
+    async def wait_if_needed(self, estimated_tokens: int = 1000) -> None:
+        """
+        检查是否需要等待以遵守速率限制
+        
+        Args:
+            estimated_tokens: 估计的令牌使用量
+        """
+        # 清理过期记录（1分钟前的）
+        current_time = datetime.now()
+        one_minute_ago = current_time - timedelta(minutes=1)
+        
+        # 清理过期的请求时间记录
+        while self.request_times and self.request_times[0] < one_minute_ago:
+            self.request_times.popleft()
+        
+        # 清理过期的令牌使用记录
+        while self.token_usage and self.token_usage[0]["time"] < one_minute_ago:
+            self.token_usage.popleft()
+        
+        # 计算当前请求数和令牌使用量
+        current_rpm = len(self.request_times)
+        current_tpm = sum(item["tokens"] for item in self.token_usage)
+        
+        # 检查是否超出限制
+        if current_rpm >= self.rpm_limit or current_tpm + estimated_tokens > self.tpm_limit:
+            # 计算需要等待的时间
+            if current_rpm > 0:
+                # 等待最早的请求过期
+                wait_seconds = (self.request_times[0] - one_minute_ago).total_seconds()
+                wait_seconds = max(0, wait_seconds)
+                
+                self.logger.warning(f"达到速率限制 (RPM: {current_rpm}/{self.rpm_limit}, TPM: {current_tpm}/{self.tpm_limit})，等待 {wait_seconds:.2f} 秒")
+                await asyncio.sleep(wait_seconds)
+                
+                # 递归检查，确保等待后仍然符合限制
+                return await self.wait_if_needed(estimated_tokens)
+        
+        # 记录本次请求
+        self.request_times.append(current_time)
+        self.token_usage.append({
+            "time": current_time,
+            "tokens": estimated_tokens
+        })
+    
+    def update_token_usage(self, actual_tokens: int) -> None:
+        """
+        更新实际的令牌使用量
+        
+        Args:
+            actual_tokens: 实际使用的令牌数
+        """
+        if self.token_usage:
+            # 更新最近一次请求的令牌使用量
+            self.token_usage[-1]["tokens"] = actual_tokens
 
 
 class GoogleModel(BaseModel):
@@ -45,7 +134,7 @@ class GoogleModel(BaseModel):
             raise ValueError("Google API密钥未提供")
         
         # 设置API基础URL
-        self.base_url = base_url or os.environ.get("GOOGLE_BASE_URL") or "https://generativelanguage.googleapis.com/v1beta/openai/"
+        self.api_base = base_url or os.environ.get("GOOGLE_BASE_URL") or "https://generativelanguage.googleapis.com/v1beta/openai/"
         
         # 设置默认参数
         self.temperature = kwargs.get("temperature", 0.7)
@@ -63,6 +152,14 @@ class GoogleModel(BaseModel):
         )
         
         self.logger = logging.getLogger(f"model.google.{model_name}")
+        
+        # 创建速率限制器
+        # 根据模型设置不同的速率限制
+        if "flash-lite-preview" in model_name.lower():
+            self.rate_limiter = RateLimiter(rpm_limit=15, tpm_limit=250000)
+        else:
+            # 默认使用Gemini 2.5 Flash的限制
+            self.rate_limiter = RateLimiter(rpm_limit=10, tpm_limit=250000)
 
     async def generate(self, prompt: str, system_prompt: str = "") -> str:
         """
@@ -76,6 +173,12 @@ class GoogleModel(BaseModel):
             生成的文本
         """
         try:
+            # 估计令牌数量（简单估计，每4个字符约1个令牌）
+            estimated_tokens = (len(prompt) + len(system_prompt)) // 4
+            
+            # 应用速率限制
+            await self.rate_limiter.wait_if_needed(estimated_tokens)
+            
             messages = []
 
             # 添加系统提示词
@@ -94,7 +197,7 @@ class GoogleModel(BaseModel):
             }
 
             # 构建URL - 使用OpenAI兼容端点
-            url = f"{self.base_url.rstrip('/')}/chat/completions"
+            url = f"{self.api_base.rstrip('/')}/chat/completions"
 
             # 构建请求头
             headers = {
@@ -141,6 +244,11 @@ class GoogleModel(BaseModel):
 
                     # 获取生成的文本 - OpenAI格式
                     if "choices" in result and result["choices"]:
+                        # 更新实际的令牌使用量
+                        if "usage" in result:
+                            total_tokens = result["usage"].get("total_tokens", estimated_tokens)
+                            self.rate_limiter.update_token_usage(total_tokens)
+                        
                         return result["choices"][0]["message"]["content"]
 
                     return "生成失败: 无法解析响应"
@@ -174,119 +282,133 @@ class GoogleModel(BaseModel):
         Returns:
             生成的文本
         """
-        if not self.supports_vision():
-            return "该模型不支持图像处理"
-
-        try:
-            # 读取图像
-            with open(image_path, "rb") as image_file:
-                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-
-            # 构建请求数据 - 使用Google Gemini API格式
-            data = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": f"{system_prompt}\n\n{prompt}" if system_prompt else prompt},
-                            {
-                                "inline_data": {
-                                    "mime_type": "image/jpeg",
-                                    "data": base64_image
-                                }
+        self.logger.info(f"正在发送请求到: {self.api_base}")
+        
+        # 检查aiohttp是否可用
+        if aiohttp is None:
+            try:
+                globals()['aiohttp'] = importlib.import_module('aiohttp')
+                self.logger.info("成功导入aiohttp库")
+            except ImportError as e:
+                self.logger.error(f"无法导入aiohttp库: {str(e)}")
+                raise ImportError("无法导入aiohttp库，请使用 'pip install aiohttp' 安装")
+        
+        # 估计令牌数量（图像请求通常消耗更多令牌）
+        estimated_tokens = (len(prompt) + len(system_prompt)) // 4 + 1000  # 图像额外添加1000令牌估计
+        
+        # 应用速率限制
+        await self.rate_limiter.wait_if_needed(estimated_tokens)
+        
+        # 设置超时和重试参数
+        max_retries = 3
+        timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
+        
+        for attempt in range(max_retries):
+            try:
+                # 读取图片并编码为base64
+                with open(image_path, "rb") as image_file:
+                    image_data = base64.b64encode(image_file.read()).decode("utf-8")
+                
+                # 构建消息
+                messages = []
+                
+                # 添加系统提示词
+                if system_prompt:
+                    messages.append({"role": "system", "content": system_prompt})
+                
+                # 添加用户提示词和图像
+                messages.append({
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_data}"
                             }
-                        ]
-                    }
-                ],
-                "generationConfig": {
-                    "temperature": self.temperature,
-                    "maxOutputTokens": 2048  # 增加token限制以避免思考过程中用完
+                        }
+                    ]
+                })
+                
+                # 构建请求数据
+                data = {
+                    "model": self.model_name,
+                    "messages": messages,
+                    "max_tokens": self.max_tokens,
+                    "temperature": self.temperature
                 }
-            }
-
-            # 构建URL - 使用正确的Google Gemini API端点
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent"
-
-            # 发送请求，带重试机制
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    # 创建连接器，设置更宽松的超时
-                    connector = aiohttp.TCPConnector(
-                        limit=100,
-                        limit_per_host=30,
-                        ttl_dns_cache=300,
-                        use_dns_cache=True,
+                
+                # 使用同步requests库，在异步函数中运行（避免aiohttp的潜在问题）
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        requests.post,
+                        f"{self.api_base.rstrip('/')}/chat/completions",
+                        json=data,
+                        headers={
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {self.api_key}"
+                        },
+                        timeout=30
                     )
-
-                    timeout = aiohttp.ClientTimeout(
-                        total=120,  # 总超时时间120秒
-                        connect=30,  # 连接超时30秒
-                        sock_read=60  # 读取超时60秒
-                    )
-
-                    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-                        self.logger.info(f"正在发送图像请求到: {url}")
-                        async with session.post(
-                            url,
-                            json=data,
-                            headers={
-                                "Content-Type": "application/json"
-                            },
-                            params={
-                                "key": self.api_key
-                            } if self.api_key else None
-                        ) as response:
-                            if response.status == 429:  # 速率限制
-                                if attempt < max_retries - 1:
-                                    wait_time = (attempt + 1) * 10  # 递增等待时间
-                                    self.logger.warning(f"遇到速率限制，等待{wait_time}秒后重试...")
-                                    await asyncio.sleep(wait_time)
-                                    continue
-                                else:
-                                    return "生成失败: 超出API速率限制，请稍后再试"
-
-                            if response.status != 200:
-                                error_text = await response.text()
-                                self.logger.error(f"API请求失败: {response.status}, {error_text}")
-                                if attempt < max_retries - 1:
-                                    await asyncio.sleep(2)  # 短暂等待后重试
-                                    continue
-                                return f"生成失败: API请求返回 {response.status}"
-
-                            result = await response.json()
-
-                            # 获取生成的文本
-                            if "candidates" in result and result["candidates"]:
-                                candidate = result["candidates"][0]
-                                if "content" in candidate and "parts" in candidate["content"]:
-                                    parts = candidate["content"]["parts"]
-                                    if parts and "text" in parts[0]:
-                                        return parts[0]["text"]
-
-                                # 检查是否因为token限制而失败
-                                if candidate.get("finishReason") == "MAX_TOKENS":
-                                    return "生成失败: 响应被截断（达到最大token限制）"
-
-                            return "生成失败: 无法解析响应"
-
-                except asyncio.TimeoutError:
+                    
+                    # 添加超时处理
+                    try:
+                        response = future.result()
+                    except concurrent.futures.TimeoutError:
+                        if attempt < max_retries - 1:
+                            self.logger.warning(f"请求超时，正在重试... (尝试 {attempt + 1}/{max_retries})")
+                            await asyncio.sleep(5)
+                            continue
+                        return "生成失败: 请求超时"
+                
+                if response.status_code == 429:  # 速率限制
                     if attempt < max_retries - 1:
-                        self.logger.warning(f"请求超时，正在重试... (尝试 {attempt + 1}/{max_retries})")
-                        await asyncio.sleep(5)
+                        wait_time = (attempt + 1) * 5  # 递增等待时间
+                        self.logger.warning(f"遇到速率限制，等待{wait_time}秒后重试...")
+                        await asyncio.sleep(wait_time)
                         continue
-                    return "生成失败: 请求超时"
-                except Exception as e:
+                    else:
+                        return "生成失败: 超出API速率限制，请稍后再试"
+                
+                if response.status_code != 200:
+                    error_text = response.text
+                    self.logger.error(f"API请求失败: {response.status_code}, {error_text}")
                     if attempt < max_retries - 1:
-                        self.logger.warning(f"请求失败: {e}，正在重试... (尝试 {attempt + 1}/{max_retries})")
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(2)  # 短暂等待后重试
                         continue
-                    raise e
-
-        except Exception as e:
-            self.logger.error(f"基于图像生成文本失败: {str(e)}")
-            return f"生成失败: {str(e)}"
-
-
+                    return f"生成失败: API请求返回 {response.status_code}"
+                
+                result = response.json()
+                
+                # 更新实际的令牌使用量
+                if "usage" in result:
+                    total_tokens = result["usage"].get("total_tokens", estimated_tokens)
+                    self.rate_limiter.update_token_usage(total_tokens)
+                
+                # 提取生成的文本
+                if "choices" in result and len(result["choices"]) > 0:
+                    return result["choices"][0]["message"]["content"]
+                else:
+                    self.logger.error(f"无效的API响应: {result}")
+                    return f"无效的API响应: {result}"
+            
+            except requests.exceptions.Timeout:
+                if attempt < max_retries - 1:
+                    self.logger.warning(f"请求超时，正在重试... (尝试 {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(5)
+                    continue
+                return "生成失败: 请求超时"
+            except Exception as e:
+                self.logger.error(f"基于图像生成文本失败: {str(e)}")
+                if attempt < max_retries - 1:
+                    self.logger.warning(f"请求失败: {e}，正在重试... (尝试 {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(2)
+                    continue
+                return f"生成失败: {str(e)}"
+        
+        # 如果所有重试都失败
+        return "生成失败: 多次尝试后仍无法获取响应"
 
     async def generate_stream(
         self,

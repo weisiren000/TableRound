@@ -263,7 +263,7 @@ class DoubaoModel(BaseModel):
             self.logger.error(f"基于图像生成文本失败: {str(e)}")
             return f"生成失败: {str(e)}"
 
-    async def generate_image(self, prompt: str, size: str = "1024x1024", n: int = 1, watermark: bool = False) -> List[str]:
+    async def generate_image(self, prompt: str, size: str = "1024x1024", n: int = 4, watermark: bool = False) -> List[str]:
         """
         生成图像
 

@@ -618,7 +618,7 @@ async def design_paper_cutting(conversation_manager: ConversationManager):
     # 输入关键词
     keywords_panel = Panel("🔑 设计关键词", 60)
     keywords_panel.add_line("请输入设计关键词来指导创作方向：")
-    keywords_panel.add_line(muted("多个关键词请用逗号分隔，如：蝙蝠,吉祥,红色"))
+    keywords_panel.add_line(muted("多个关键词请用逗号分隔，如：蝴蝶,吉祥,红色"))
     print(keywords_panel.render())
     print()
 
@@ -657,7 +657,7 @@ async def design_paper_cutting(conversation_manager: ConversationManager):
 
     design_prompt = input(primary("设计提示词: ")).strip()
     if not design_prompt:
-        design_prompt = "传统中国红色调，对称蝙蝠图案，吉祥如意"
+        design_prompt = "传统中国红色调，对称蝴蝶图案，吉祥如意"
         print(StatusIndicator.info(f"使用默认提示词: {design_prompt}"))
 
     # 选择图像生成提供商
@@ -688,12 +688,14 @@ async def design_paper_cutting(conversation_manager: ConversationManager):
     spinner.start()
 
     try:
-        image_path = await image_processor.generate_image(design_prompt, provider=provider)
+        image_paths = await image_processor.generate_image(design_prompt, provider=provider)
     finally:
         spinner.stop()
 
-    if image_path:
-        print(StatusIndicator.success(f"设计图已生成: {image_path}"))
+    if image_paths:
+        print(StatusIndicator.success(f"成功生成 {len(image_paths)} 张设计图:"))
+        for i, path in enumerate(image_paths, 1):
+            print(f"  图像 {i}: {path}")
     else:
         print(StatusIndicator.error("设计图生成失败"))
         UIComponents.wait_for_input()
@@ -732,7 +734,7 @@ async def design_paper_cutting(conversation_manager: ConversationManager):
 
             variation_prompt = input(primary("新提示词: ")).strip()
             if not variation_prompt:
-                variation_prompt = "基于参考图像，生成对称的剪纸风格的中国传统蝙蝠吉祥纹样，保持原图的风格和元素"
+                variation_prompt = "基于参考图像，生成对称的剪纸风格的中国传统蝴蝶吉祥纹样，保持原图的风格和元素"
                 print(StatusIndicator.info("使用默认提示词"))
 
             # 基于原型图片生成新图片
@@ -860,7 +862,7 @@ async def ai_image_test(conversation_manager: ConversationManager):
 
         # 构建完整的提示词 - 使用与conversation.py相同的逻辑
         print(StatusIndicator.info("步骤1: 构建基础提示词"))
-        base_prompt = f"{user_prompt}，对称的剪纸风格的中国传统蝙蝠吉祥纹样"
+        base_prompt = f"{user_prompt}，对称的剪纸风格的中国传统蝴蝶吉祥纹样"
         print(f"  基础提示词: {muted(base_prompt)}")
 
         print(StatusIndicator.info("步骤2: 应用提示词优化"))
@@ -875,14 +877,16 @@ async def ai_image_test(conversation_manager: ConversationManager):
 
         try:
             # 使用与主程序完全相同的生成逻辑
-            image_path = await image_processor.generate_image(base_prompt, provider=provider)
+            image_paths = await image_processor.generate_image(base_prompt, provider=provider)
         finally:
             spinner.stop()
 
         # 显示结果
         print()
-        if image_path:
-            print(StatusIndicator.success(f"✅ 图像已生成: {image_path}"))
+        if image_paths:
+            print(StatusIndicator.success(f"✅ 成功生成 {len(image_paths)} 张图像:"))
+            for i, path in enumerate(image_paths, 1):
+                print(f"  图像 {i}: {path}")
             print(StatusIndicator.info(f"使用提供商: {provider_name}"))
             print(StatusIndicator.info(f"原始提示词: {user_prompt}"))
 

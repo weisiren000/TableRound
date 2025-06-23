@@ -89,7 +89,7 @@ class Designer(Agent):
         5. 目标用户群体
         6. 使用场景
 
-        请确保设计概念围绕"对称的剪纸风格的中国传统蝙蝠吉祥纹样"这一主题，同时融入关键词中的元素。
+        请确保设计概念围绕"对称的剪纸风格的中国传统蝴蝶吉祥纹样"这一主题，同时融入关键词中的元素。
         """
 
         system_prompt = PromptTemplates.get_system_prompt(self.current_role)
