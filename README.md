@@ -1,41 +1,42 @@
-# 圆桌会议 (TableRound)
+# TableRound (圆桌会议)
 
-圆桌会议是一个基于多智能体对话的圆桌会议系统，专注于剪纸文创产品设计，采用两阶段AI架构，支持统一图像描述机制和智能记忆管理。
+<div align="center">
+  <img src="images/logo.png" alt="TableRound Logo" width="200"/>
+  <p>基于多智能体的协作讨论平台</p>
+</div>
 
-## 项目特点
+## 项目简介
 
-- **多智能体系统**：六个不同角色的智能体（手工艺人、消费者×3、制造商、设计师）
-- **两阶段AI架构**：视觉理解(Google Gemini) + 对话生成(DeepSeek R1)
-- **统一图像描述**：避免重复调用视觉模型，一次描述全员共享
-- **Redis统一记忆**：高性能统一存储方案，支持自动清理和备份
-- **流式对话**：实时流式输出的多智能体对话
-- **KJ法关键词提取**：智能体使用KJ法总结和分类关键词
-- **角色扮演**：支持智能体角色转换和场景模拟
-- **图像处理**：支持图片输入和智能体基于图片的故事讲述
-- **设计生成**：基于关键词生成剪纸文创产品设计
-- **UI美化**：增强的终端界面，支持多种主题和动画效果
+TableRound（圆桌会议）是一个基于多智能体协作的交互式讨论系统，通过模拟不同角色的智能体（手工艺人、消费者、制造商、设计师）共同参与讨论，实现创意发想与设计方案生成。系统采用Redis作为统一存储后端，支持记忆管理、关键词提取、角色转换、图像处理等功能。
 
-## 安装与使用
+## 核心特性
+
+- **多智能体协作**：支持多种AI代理角色进行交互讨论
+- **统一Redis存储**：高效的记忆管理和智能体状态存储
+- **图像理解与生成**：支持图像分析和AI绘画生成
+- **关键词提取与投票**：智能提取讨论要点并进行投票
+- **角色动态切换**：支持智能体在不同角色间灵活转换
+- **美化命令行界面**：直观友好的用户交互体验
+
+## 快速开始
 
 ### 环境要求
 
 - Python 3.8+
-- Redis服务器 (localhost:6379)
-- AI API密钥：
-  - OpenRouter API密钥 (推荐，支持多种模型)
-  - 豆包API密钥 (图像生成)
-  - Google Gemini API密钥 (视觉理解)
-- 相关依赖包（见requirements.txt）
+- Redis 6.0+
+- Docker (可选，用于Redis部署)
 
 ### 安装步骤
 
 1. 克隆仓库
+
 ```bash
 git clone https://github.com/weisiren000/roundtable.git
-cd tableround
+cd roundtable
 ```
 
 2. 创建并激活虚拟环境
+
 ```bash
 python -m venv venv
 # Windows
@@ -45,142 +46,84 @@ source venv/bin/activate
 ```
 
 3. 安装依赖
+
 ```bash
-# 推荐使用uv包管理器
-uv pip install -r requirements.txt
-# 或使用传统pip
 pip install -r requirements.txt
 ```
 
 4. 配置环境变量
+
+复制示例配置文件并修改：
+
 ```bash
 cp .env.example .env
-# 编辑.env文件，填入你的API密钥
+# 编辑.env文件，填入API密钥等配置
 ```
 
-5. 启动Redis服务器
+5. 启动Redis (Docker方式)
+
 ```bash
-# Windows (使用Docker)
-docker run -d -p 6379:6379 redis:latest
-# 或安装本地Redis服务
+docker run -d --name tableround-redis -p 6379:6379 redis
 ```
 
 6. 运行程序
+
 ```bash
-# 推荐使用uv
-uv run run.py
-# 或使用传统python
 python run.py
 ```
 
-## 项目结构
+## 使用指南
 
-```
-tableround/
-├── data/                  # 数据目录
-│   ├── images/            # 用户上传的图片
-│   ├── keywords/          # 提取的关键词
-│   └── memories/          # 智能体记忆备份
-├── src/                   # 源代码目录
-│   ├── agents/            # 智能体定义
-│   ├── config/            # 配置模块 (模型、提示词、Redis等)
-│   ├── core/              # 核心功能 (对话、记忆、会议清理等)
-│   ├── models/            # 对接不同AI模型的接口
-│   ├── ui_enhanced/       # UI美化模块 (颜色、图标、动画等)
-│   └── utils/             # 工具函数
-├── ui/                    # 用户界面
-│   └── cli/               # 命令行界面
-├── .env.example           # 环境变量示例
-├── .gitignore             # Git忽略配置
-├── arc.md                 # 项目架构文档
-├── README.md              # 项目说明
-├── requirements.txt       # 依赖列表
-└── run.py                 # 启动脚本
-```
+启动程序后，可通过命令行界面使用以下功能：
 
-## 使用示例
+1. **开始新对话**：启动多智能体圆桌讨论
+2. **处理图片**：上传图片进行智能分析
+3. **设计剪纸文创**：基于关键词设计文创产品
+4. **AI绘画图像测试**：快速提示词迭代测试
+5. **关键词提取测试**：快速测试设计要素关键词提取
 
-### 基本对话流程
+## 系统架构
 
-1. 智能体自我介绍
-2. 用户输入讨论主题
-3. 智能体按顺序进行对话
-4. 智能体提取关键词并投票
-5. 用户输入关键词进入下一阶段
-6. 智能体角色转换后继续讨论
+详细架构说明请参考 [ARCHITECTURE.md](ARCHITECTURE.md)
 
-### 图像处理流程
+## 技术栈
 
-1. 用户输入图片路径
-2. 智能体根据图片讲故事
-3. 提取关键词
-4. 可选择进入设计阶段
+- **后端**：Python, asyncio
+- **存储**：Redis
+- **AI模型**：OpenAI, Anthropic, Google, DeepSeek, 豆包等
+- **界面**：命令行增强UI
 
-### 设计流程
+## 开发路线
 
-1. 用户输入关键词
-2. 智能体生成设计卡牌
-3. 用户输入设计提示词
-4. 系统生成设计图像
-5. 可选择上传原型进行合并
-
-## 命令行参数
-
-- `--config`：配置文件路径，默认为`.env`
-- `--log-level`：日志级别，可选值：DEBUG, INFO, WARNING, ERROR, CRITICAL，默认为INFO
-- `--log-file`：日志文件路径，默认为`logs/app.log`
-- `--no-console-log`：不输出日志到控制台
-
-## 智能体角色
-
-系统支持以下六个智能体角色：
-
-1. **巴雅尔（手工艺人）**：60岁的蒙古族传统剪纸传承人，从事蒙古族剪纸技艺长达40年
-2. **阿依古丽（消费者1）**：23岁学生，少数民族，喜欢购买具有文化特色的手工艺品
-3. **张小雅（消费者2）**：27岁自由职业者，喜欢旅游，经常购买文化创意品
-4. **王晓萌（消费者3）**：22岁学生，经常购买文化创意品
-5. **李志强（制造商）**：35岁的文化创意产品生产商，从事四年手工艺品生产和开发
-6. **林思雨（设计师）**：26岁的研究生设计师，有7年设计经验
-
-### 对话顺序
-智能体按特定顺序进行对话：手工艺人→消费者→制造商→消费者→设计师→消费者
-
-## 技术架构
-
-### 两阶段AI处理
-- **第一阶段**: Google Gemini 2.0 Flash 进行图像视觉理解
-- **第二阶段**: DeepSeek R1 进行多智能体对话生成
-- **图像生成**: 豆包API (doubao-seedream-3-0-t2i) 生成设计图像
-
-### Redis统一记忆系统
-- **统一存储**: 所有智能体记忆统一存储在Redis中
-- **自动清理**: 每次会议开始时自动清理旧数据
-- **性能优化**: 支持TTL过期、批量操作、安全处理
-- **备份机制**: 清理前自动备份重要数据
-
-### UI增强功能
-- **多主题支持**: 6种预设主题，支持动态切换
-- **动画效果**: 加载动画、打字机效果、渐变动画
-- **彩色输出**: 256色支持、RGB渐变、智能体专属颜色
-- **进度指示**: 实时进度条、状态指示器
+- [ ] 多模态交互增强
+- [ ] Web界面开发
+- [ ] 分布式部署支持
+- [ ] 更多智能体角色
+- [ ] 社区版本发布
 
 ## 贡献指南
 
-欢迎贡献代码、报告问题或提出改进建议。请遵循以下步骤：
+欢迎提交问题和贡献代码！请参考以下步骤：
 
-1. Fork 本仓库
-2. 创建你的特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交你的更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 开启一个 Pull Request
+1. Fork 仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add some amazing feature'`)
+4. 推送分支 (`git push origin feature/amazing-feature`)
+5. 创建Pull Request
 
 ## 许可证
 
-本项目采用 [MIT 许可证](LICENSE)。
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
 
-## 联系方式
+## 作者
 
-如有任何问题或建议，请通过以下方式联系我们：
+- **weisiren** - [GitHub](https://github.com/weisiren000)
 
-- 电子邮件：cxyvsir04@gmail.com
-- GitHub Issues：[https://github.com/weisiren000/roundtable/issues](https://github.com/weisiren000/roundtable/issues)
+## 致谢
+
+- 感谢所有为项目做出贡献的开发者
+- 特别感谢各大AI模型提供商提供的API支持
+
+---
+
+*更新日期: 2025年6月24日* 
