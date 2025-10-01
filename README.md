@@ -1,129 +1,148 @@
-# TableRound (圆桌会议)
+# Roundtable 项目
 
-<div align="center">
-  <img src="images/logo.png" alt="TableRound Logo" width="200"/>
-  <p>基于多智能体的协作讨论平台</p>
-</div>
+## 项目描述
 
-## 项目简介
+Roundtable 是一个基于多代理协作的 AI 系统，模拟圆桌会议场景，用于处理复杂任务。系统集成了多种 AI 模型（如 OpenAI、Anthropic、DeepSeek 等），支持记忆管理、提示模板、图像处理和 UI 增强。核心功能包括代理角色（如消费者、工匠、设计师、制造商）、全局记忆、会议清理和投票机制。
 
-TableRound（圆桌会议）是一个基于多智能体协作的交互式讨论系统，通过模拟不同角色的智能体（手工艺人、消费者、制造商、设计师）共同参与讨论，实现创意发想与设计方案生成。系统采用Redis作为统一存储后端，支持记忆管理、关键词提取、角色转换、图像处理等功能。
+该项目旨在提供一个高效的 AI 协作框架，支持从数据处理到生成式任务的端到端流程。
 
-## 核心特性
+## 特性
 
-- **多智能体协作**：支持多种AI代理角色进行交互讨论
-- **统一Redis存储**：高效的记忆管理和智能体状态存储
-- **图像理解与生成**：支持图像分析和AI绘画生成
-- **关键词提取与投票**：智能提取讨论要点并进行投票
-- **角色动态切换**：支持智能体在不同角色间灵活转换
-- **美化命令行界面**：直观友好的用户交互体验
+- **多代理系统**：支持消费者（consumer）、工匠（craftsman）、设计师（designer）和制造商（manufacturer）等角色代理。
+- **模型集成**：兼容 OpenAI、Anthropic、Google、DeepSeek、Doubao 和 OpenRouter 等模型。
+- **记忆管理**：使用 Redis 作为后端，支持全局记忆和会话记忆。
+- **提示模板**：模块化提示系统，包括代理提示和功能提示（如关键词提取、图像故事生成）。
+- **UI 增强**：CLI 终端界面，支持动画、颜色主题和图标。
+- **工具支持**：图像压缩、流式输出、日志记录和 KJ 方法（亲和图法）用于会议总结。
+- **数据处理**：支持图像、关键词和记忆文件处理。
 
-## 快速开始
+## 安装
 
-### 环境要求
+1. 克隆仓库：
+   ```
+   git clone git@github.com:weisiren000/roundtable.git
+   cd roundtable
+   ```
 
-- Python 3.8+
-- Redis 6.0+
-- Docker (可选，用于Redis部署)
+2. 创建虚拟环境（推荐）：
+   ```
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   # 或
+   venv\Scripts\activate  # Windows
+   ```
 
-### 安装步骤
+3. 安装依赖：
+   ```
+   pip install -r requirements.txt
+   ```
 
-1. 克隆仓库
+4. 配置环境变量：
+   - 复制 `.env.example` 为 `.env` 并填写必要的 API 密钥（如 OPENAI_API_KEY、REDIS_URL 等）。
 
-```bash
-git clone https://github.com/weisiren000/roundtable.git
-cd roundtable
+5. 安装 Redis（如果未安装）：
+   - 下载并启动 Redis 服务器。
+
+## 用法
+
+1. 运行主程序：
+   ```
+   python run.py
+   ```
+
+2. 通过 CLI 界面交互：
+   - 系统将启动终端 UI，支持输入查询、查看代理交互和输出结果。
+   - 示例：输入一个任务描述，系统将分配代理角色进行协作处理。
+
+3. 自定义配置：
+   - 编辑 `src/config/settings.py` 以调整模型和代理行为。
+   - 使用 `src/config/prompts/` 中的模板自定义提示。
+
+## 项目结构
+
+```
+roundtable/
+├── .augmentignore
+├── .env.example
+├── .gitignore
+├── ARCHITECTURE.md
+├── CLAUDE.md
+├── LICENSE
+├── requirements.txt
+├── run.py
+├── data/
+│   ├── images.zip
+│   ├── keywords/
+│   └── memories/
+├── logs/
+├── src/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── agents/
+│   │   ├── consumer.py
+│   │   ├── craftsman.py
+│   │   ├── designer.py
+│   │   └── manufacturer.py
+│   ├── config/
+│   │   ├── models.py
+│   │   ├── redis_config.py
+│   │   ├── settings.py
+│   │   └── prompts/
+│   │       ├── __init__.py
+│   │       ├── base_prompts.py
+│   │       ├── template_manager.py
+│   │       ├── agent_prompts/
+│   │       └── function_prompts/
+│   ├── core/
+│   │   ├── agent.py
+│   │   ├── conversation.py
+│   │   ├── global_memory.py
+│   │   ├── god_view.py
+│   │   ├── kj_method.py
+│   │   ├── meeting_cleaner.py
+│   │   ├── memory_adapter.py
+│   │   └── redis_memory.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── anthropic.py
+│   │   ├── base.py
+│   │   ├── deepseek.py
+│   │   ├── doubao.py
+│   │   ├── github.py
+│   │   ├── google.py
+│   │   ├── openai.py
+│   │   └── openrouter.py
+│   ├── ui_enhanced/
+│   │   ├── __init__.py
+│   │   ├── animations.py
+│   │   ├── enhanced_colors.py
+│   │   ├── icons.py
+│   │   ├── themes.py
+│   │   └── ui_components.py
+│   └── utils/
+│       ├── colors.py
+│       ├── image_compressor.py
+│       ├── image.py
+│       ├── logger.py
+│       ├── stream.py
+│       └── voting.py
+└── ui/
+    └── cli/
+        └── terminal.py
 ```
 
-2. 创建并激活虚拟环境
+## 贡献
 
-```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-```
-
-3. 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-4. 配置环境变量
-
-复制示例配置文件并修改：
-
-```bash
-cp .env.example .env
-# 编辑.env文件，填入API密钥等配置
-```
-
-5. 启动Redis (Docker方式)
-
-```bash
-docker run -d --name tableround-redis -p 6379:6379 redis
-```
-
-6. 运行程序
-
-```bash
-python run.py
-```
-
-## 使用指南
-
-启动程序后，可通过命令行界面使用以下功能：
-
-1. **开始新对话**：启动多智能体圆桌讨论
-2. **处理图片**：上传图片进行智能分析
-3. **设计剪纸文创**：基于关键词设计文创产品
-4. **AI绘画图像测试**：快速提示词迭代测试
-5. **关键词提取测试**：快速测试设计要素关键词提取
-
-## 系统架构
-
-详细架构说明请参考 [ARCHITECTURE.md](ARCHITECTURE.md)
-
-## 技术栈
-
-- **后端**：Python, asyncio
-- **存储**：Redis
-- **AI模型**：OpenAI, Anthropic, Google, DeepSeek, 豆包等
-- **界面**：命令行增强UI
-
-## 开发路线
-
-- [ ] 多模态交互增强
-- [ ] Web界面开发
-- [ ] 分布式部署支持
-- [ ] 更多智能体角色
-- [ ] 社区版本发布
-
-## 贡献指南
-
-欢迎提交问题和贡献代码！请参考以下步骤：
-
-1. Fork 仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送分支 (`git push origin feature/amazing-feature`)
-5. 创建Pull Request
+1. Fork 项目。
+2. 创建分支：`git checkout -b feature-branch`。
+3. 提交更改：`git commit -am 'Add new feature'`。
+4. 推送分支：`git push origin feature-branch`。
+5. 创建 Pull Request。
 
 ## 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
 
-## 作者
+## 联系
 
-- **weisiren** - [GitHub](https://github.com/weisiren000)
-
-## 致谢
-
-- 感谢所有为项目做出贡献的开发者
-- 特别感谢各大AI模型提供商提供的API支持
-
----
-
-*更新日期: 2025年6月24日* 
+如有问题，请通过 GitHub Issues 提交。
