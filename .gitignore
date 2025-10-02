@@ -25,3 +25,5 @@ test_redis_clean.py
 
 .windsurf
 .kilocode
+task
+data/
