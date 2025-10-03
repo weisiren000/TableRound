@@ -50,7 +50,7 @@
 
 - 克隆本项目:
   ```bash
-  git clone https://github.com/weisiren000/roundtable.git
+  git clone https://github.com/weisiren000/TableRound.git
   cd roundtable
   ```
 
