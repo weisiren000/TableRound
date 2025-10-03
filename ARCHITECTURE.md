@@ -9,7 +9,7 @@ TableRound（圆桌会议）是一个基于多智能体协作的讨论系统，�
 ### 1.1 项目信息
 
 - **项目名称**: TableRound (圆桌会议)
-- **代码仓库**: https://github.com/weisiren000/roundtable.git
+- **代码仓库**: https://github.com/weisiren000/TableRound.git
 - **作者**: weisiren
 - **更新日期**: 2025年10月3日
 
