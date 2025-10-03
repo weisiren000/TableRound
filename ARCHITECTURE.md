@@ -1,5 +1,7 @@
 # TableRound 系统架构文档
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 ## 1. 系统概述
 
 TableRound（圆桌会议）是一个基于多智能体协作的讨论系统，采用Redis作为统一存储后端，支持不同角色智能体之间的交互讨论、记忆管理、关键词提取、角色转换和图像处理等功能。
@@ -7,9 +9,9 @@ TableRound（圆桌会议）是一个基于多智能体协作的讨论系统，�
 ### 1.1 项目信息
 
 - **项目名称**: TableRound (圆桌会议)
-- **代码仓库**: git@github.com:weisiren000/roundtable.git
+- **代码仓库**: https://github.com/weisiren000/roundtable.git
 - **作者**: weisiren
-- **更新日期**: 2025年6月24日
+- **更新日期**: 2025年10月3日
 
 ## 2. 系统架构
 
