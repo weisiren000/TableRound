@@ -1,6 +1,6 @@
 # TableRound (圆桌会议)
 
-[![LICENSE](https://img.shields.io/github/license/weisiren000/roundtable)](https://github.com/weisiren000/roundtable/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 **TableRound (圆桌会议)** 是一个先进的、基于多智能体协作的AI系统。它模拟一个圆桌会议场景，让不同角色的AI智能体（如设计师、制造商等）协同工作，以解决复杂的问题和完成创造性任务。
 
