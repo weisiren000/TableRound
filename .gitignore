@@ -1,29 +1,34 @@
-# gitignore
-venv
+# Environments
 .env
-trash
-**/__pycache__
-docs
-fixtalk
-**/app.log
-todo
-tests
-todo
-trash
+venv/
+.venv/
 
-_archive
-_experiments
-images/
+# Python cache
+**/__pycache__/
+*.py[cod]
+
+# IDE & Editor folders
+.cursor/
+.kilocode/
+.windsurf/
+
+# Project-specific folders to ignore
+logs/
+_archive/
+_experiments/
+trash/
+task/
+
+# Log files
+**/app.log
+*.log
+
+# Temporary or obsolete scripts (from original .gitignore)
+fixtalk
 memory_enhancement_patch.py
-.cursor
 redis_data_viewer.py
 test_meeting_cleaner.py
 test_redis_clean_simple.py
 test_redis_only_architecture.py
 enhanced_ui_demo.py
 test_redis_clean.py
-
-.windsurf
-.kilocode
-task
-data/
