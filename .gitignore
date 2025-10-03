@@ -32,3 +32,10 @@ test_redis_clean_simple.py
 test_redis_only_architecture.py
 enhanced_ui_demo.py
 test_redis_clean.py
+
+#others
+todo
+data
+docs
+tests
+images
